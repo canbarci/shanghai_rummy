@@ -2,41 +2,23 @@ import "../App.css"
 import React from "react";
 import { ChangeEvent, useState } from 'react';
 import {Link} from 'react-router-dom'
-import { getDatabase, ref, set, onDisconnect } from "firebase/database"
-import { getAuth, signInAnonymously } from "firebase/auth";
+import axios from "axios";
+import { set } from "firebase/database";
 
 const WelcomePage = () => {
-    const db = getDatabase();
-    const auth = getAuth(); 
-    const gameRef = ref(db, `game`);
-    const gameStartRef = ref(db, `game/started`);
     let [newName, setName] = useState('');
 
-    const addPlayer = () => {
-        signInAnonymously(auth).catch((error) => {
-        var errorCode = error.code;
-        var errorMessage = error.message;
-        // ...
-        console.log(errorCode, errorMessage);
-        });
-
-        auth.onAuthStateChanged((user) => {
-        if (user) {
-            const playerId = user.uid;
-            const playerRef = ref(db, `players/${playerId}`);
-
-            set(gameStartRef, false)
-            
-            set(playerRef, {
-                playerName: newName
-            })
-
-            //Remove me from Firebase when I diconnect
-            onDisconnect(gameRef).remove();
-            onDisconnect(playerRef).remove();
+    const addPlayer = async (playerName: string) => {
+        try {
+            const response = await axios.post('http://localhost:3001/api/welcome/add-player', { 
+                playerName 
+            });
+            // Store playerId in localStorage
+            localStorage.setItem('playerId', response.data.playerId);
+        } catch (error) {
+            console.error("Error adding player:", error);
         }
-        })
-    }
+    };
 
     return (
         <main>
@@ -50,7 +32,7 @@ const WelcomePage = () => {
                         setName(e.target.value); }}
                 />
                 <Link to="/waitingroom">
-                <button onClick={addPlayer}>Join</button>
+                    <button onClick={() => addPlayer(newName)}>Join</button>
                 </Link>
             </div>
         </main>

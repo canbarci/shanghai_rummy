@@ -8,11 +8,11 @@ import PlayerHand from "../components/PlayerHand/PlayerHand.tsx";
 import OtherPlayerHand from "../components/OtherPlayerHand.tsx";
 
 const GamePage = () => {
-    const db = getDatabase();
-    const playersRef = ref(db, 'players');
-    const [playerIds, setPlayerIds] = useState<string[]>([]);  // Store number of cards for each player
-    const currentUser = getAuth().currentUser?.uid;
-    const [playersHands, setPlayersHands] = useState<{ [playerId: string]: number }>();  // Store number of cards for each player
+    // const db = getDatabase();
+    // const playersRef = ref(db, 'players');
+    // const [playerIds, setPlayerIds] = useState<string[]>([]);  // Store number of cards for each player
+    // const currentUser = getAuth().currentUser?.uid;
+    // const [playersHands, setPlayersHands] = useState<{ [playerId: string]: number }>();  // Store number of cards for each player
 
     // useEffect(() => {
     //     onValue(playersRef, (snapshot) => {

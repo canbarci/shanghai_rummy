@@ -1,69 +1,60 @@
 import "../App.css"
-import React from "react";
-import { useEffect, useState } from 'react';
-import { NavigateFunction, useNavigate } from 'react-router-dom';
-import { getDatabase, ref, set, onValue} from "firebase/database"
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const WaitingRoomPage = () => {
-  const db = getDatabase();
-  const gameRef = ref(db, `game`);
-  const playersRef = ref(db, `players`);
-  const names: string[] = [];
-  const navigate = useNavigate();
-  const [allNames, setAllNames] = useState(names);
+    const navigate = useNavigate();
+    const [allNames, setAllNames] = useState([]);
+    const [gameStarted, setGameStarted] = useState(false);
 
-  useEffect(() => {
-    onValue(gameRef, (snapshot) => {
-      const gameData = snapshot.val();
-      handleStart(gameData, navigate);
-    });
+    useEffect(() => {
+        // Poll for game status every few seconds
+        const intervalId = setInterval(async () => {
+            getPlayerNames();
+            const { data: gameData } = await axios.get('http://localhost:3001/api/waiting-room/status');
+            if (gameData.started) {
+                setGameStarted(true);
+                clearInterval(intervalId);
+            }
+        }, 1000);
 
-    onValue(playersRef, (snapshot) => {
-      const playersData = snapshot.val();
-      getNames(playersData);
-    });
-  }, []); // Empty dependency array to run the effect only once
+        return () => clearInterval(intervalId); // Cleanup interval on component unmount
+    }, []); // Empty dependency array to run the effect only once
 
-  const getNames = (playersData: any) => {
-    const playersNames: string[] = [];
-    Object.keys(playersData).forEach((key) => {
-      let playerInfo = playersData[key];
-      Object.keys(playerInfo).forEach((innerKey) => {
-        if (innerKey === "playerName") {
-          playersNames.push(String(playerInfo[innerKey]));
+    useEffect(() => {
+        if (gameStarted) {
+            navigate('/game');
         }
-      });
-    });
-    setAllNames(playersNames);
-  }
+    }, [gameStarted, navigate]);
 
-  const init = () => {
-    const db = getDatabase();
-    const gameRef = ref(db, `game`);
+    const getPlayerNames = async () => {
+        try {
+            const { data: names } = await axios.get('http://localhost:3001/api/waiting-room/players');
+            setAllNames(names);
+        } catch (error) {
+            console.error("Error fetching player names:", error);
+        }
+    };
 
-    set(gameRef, { 
-      started: true,
-      cardsDelt: false,
-      turn: 0
-    });
-  }
-
-  const handleStart = (gameData: any, navigate: NavigateFunction) => {
-    if (gameData.started === true) {
-      navigate('/game');
-    }
-  }
-      
-  return (
-    <main>
-        <h1>Waiting till everyone joins...</h1>
-        <h2 className="label">Players</h2>
-        <ol>
-            {allNames.map((name) => (<li>{name}</li>))}
-        </ol>
-        <button onClick={init}>Start Game</button>
-    </main>
-  )
+    const initGame = async () => {
+        try {
+            await axios.post('http://localhost:3001/api/waiting-room/start');
+        } catch (error) {
+            console.error("Error starting the game:", error);
+        }
+    };
+        
+    return (
+        <main>
+            <h1>Waiting till everyone joins...</h1>
+            <h2 className="label">Players</h2>
+            <ol>
+                {allNames.map((name, index) => (<li key={index}>{name}</li>))}
+            </ol>
+            <button onClick={initGame}>Start Game</button>
+        </main>
+    )
 }
 
 export default WaitingRoomPage
