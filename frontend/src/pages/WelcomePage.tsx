@@ -3,7 +3,6 @@ import React from "react";
 import { ChangeEvent, useState } from 'react';
 import {Link} from 'react-router-dom'
 import axios from "axios";
-import { set } from "firebase/database";
 
 const WelcomePage = () => {
     let [newName, setName] = useState('');

@@ -1,7 +1,7 @@
 .player-hand {
     display: flex;
     flex-direction: row; /* Makes the cards align horizontally */
-    gap: 10px; /* Optional: Adds space between the cards */
+    gap: 20px; /* Optional: Adds space between the cards */
 }
 
 .player-hand img {

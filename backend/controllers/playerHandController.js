@@ -1,8 +1,7 @@
-const { getDatabase, ref, set, get } = require("firebase-admin/database");
+const { getDatabase } = require("firebase-admin/database");
 const axios = require('axios');
 
 const db = getDatabase();
-const admin = require("firebase-admin");
 
 exports.getCardsDealtStatus = async (req, res) => {
     try {

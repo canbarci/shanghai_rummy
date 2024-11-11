@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import axios from "axios";
-// import { getAuth } from "firebase/auth";
 import Card from "../Card.tsx"; // Import Card component
+import './PlayerHand.css';
 
 interface CardType {
     value: string;
