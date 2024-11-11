@@ -12,14 +12,6 @@ app.use(cors({
     allowedHeaders: ['Authorization', 'Content-Type', 'Origin', 'X-Requested-With', 'Accept']
 }));
 
-// app.use((req, res, next) => {
-//     res.header("Access-Control-Allow-Origin", "*");
-//     res.header("Access-Control-Allow-Credentials", true);
-//     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-//     res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS,DELETE,PUT");
-//     next();
-// });
-
 app.use(express.json()); // Parses incoming JSON requests
 
 const admin = require("firebase-admin");
