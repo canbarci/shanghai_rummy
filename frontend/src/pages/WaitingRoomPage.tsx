@@ -39,7 +39,7 @@ const WaitingRoomPage = () => {
 
     const initGame = async () => {
         try {
-            await axios.post('http://localhost:3001/api/waiting-room/start');
+            await axios.post('http://localhost:3001/api/waiting-room/start-game');
         } catch (error) {
             console.error("Error starting the game:", error);
         }

@@ -6,6 +6,8 @@ import { getDatabase, ref, onValue } from "firebase/database"
 import Deck from '../components/Deck.tsx'
 import PlayerHand from "../components/PlayerHand/PlayerHand.tsx";
 import OtherPlayerHand from "../components/OtherPlayerHand.tsx";
+import { DeckProvider } from "../contexts/DeckContext.tsx";
+import { PlayerHandProvider } from "../contexts/PlayerHandContext.tsx";
 
 const GamePage = () => {
     // const db = getDatabase();
@@ -31,17 +33,14 @@ const GamePage = () => {
 
     return (
         <div>
-            {<Deck />}
-            {<PlayerHand />}
-            {/* {playerIds.map((playerId) => (
-                <div>
-                    {playerId === currentUser ? (
+            <DeckProvider>
+                <PlayerHandProvider>
+                    <div>
+                        <Deck />
                         <PlayerHand />
-                    ) : (
-                        <OtherPlayerHand cardsCount={11} />
-                    )}
-                </div>
-            ))} */}
+                    </div>
+                </PlayerHandProvider>
+            </DeckProvider>
         </div>
     );
 };

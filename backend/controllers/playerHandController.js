@@ -3,34 +3,6 @@ const axios = require('axios');
 
 const db = getDatabase();
 
-exports.getCardsDealtStatus = async (req, res) => {
-    try {
-        const cardsDealtRef = db.ref(`game/cardsDealt`);
-
-        const snapshot = await cardsDealtRef.get();
-        let cardsDealt = snapshot.val();
-
-        res.json({ cardsDealt });
-    } catch (error) {
-        console.error("Error retrieving cards dealt status:", error);
-        res.status(500).json({ error: "Failed to retrieve cards dealt status" });
-    }
-};
-
-exports.getDeckID = async (req, res) => {
-    try {
-        const deckIdRef = db.ref('game/deck/deck_id');
-
-        const snapshot = await deckIdRef.get();
-        let deckId = snapshot.val();
-
-        res.json({ deckId });
-    } catch (error) {
-        console.error("Error retrieving deck id:", error);
-        res.status(500).json({ error: "Failed to retrieve deck id" });
-    }
-};
-
 exports.getPlayerName = async (req, res) => {
     const { playerId } = req.params; // Get playerId from URL parameter
 
@@ -43,7 +15,7 @@ exports.getPlayerName = async (req, res) => {
             return res.status(404).json({ error: 'Player not found' });
         }
 
-        res.json({ name });
+        res.status(200).json({ name });
     } catch (error) {
         console.error("Error retrieving player name:", error);
         if (error.code === 'auth/argument-error') {
@@ -54,8 +26,7 @@ exports.getPlayerName = async (req, res) => {
 };
 
 exports.getPlayerHand = async (req, res) => {
-    const { deckId } = req.body;
-    const { playerId } = req.params; // Get playerId from URL parameter
+    const { playerId, deckId } = req.body;
 
     try {
         const handRef = db.ref(`game/players/${playerId}/hand`);
@@ -68,7 +39,7 @@ exports.getPlayerHand = async (req, res) => {
         await handRef.set(hand);
         await remainingRef.set(remainingCards);
 
-        res.json({ hand });
+        res.status(200).json({ hand });
     } catch (error) {
         console.error("Error retrieving player hand:", error);
         res.status(500).json({ error: "Failed to retrieve player hand" });
@@ -76,9 +47,8 @@ exports.getPlayerHand = async (req, res) => {
 }
 
 exports.updatePlayerHand = async (req, res) => {
-    const { newHand } = req.body;
-    const { playerId } = req.params; // Get playerId from URL parameter
-
+    const { playerId, newHand} = req.body;
+    
     try {
         const handRef = db.ref(`game/players/${playerId}/hand`);
 

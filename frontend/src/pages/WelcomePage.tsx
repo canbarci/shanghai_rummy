@@ -9,7 +9,7 @@ const WelcomePage = () => {
 
     const addPlayer = async (playerName: string) => {
         try {
-            const response = await axios.post('http://localhost:3001/api/welcome/add-player', { 
+            const response = await axios.post('http://localhost:3001/api/welcome/join', { 
                 playerName 
             });
             // Store playerId in localStorage

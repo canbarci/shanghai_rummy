@@ -15,7 +15,7 @@ exports.initDeck = async (req, res) => {
         await deckRef.set(deckData);
         await cardsDealtRef.set(true);
 
-        res.status(200).json({ message: 'Deck initiazlized successfully'});
+        res.status(200).json({ message: 'Deck initiazlized successfully', deckData});
     } catch (error) {
         console.error("Error initializing deck:", error);
         res.status(500).json({ error: 'Failed to initialize deck' });
@@ -30,7 +30,7 @@ exports.drawCard = async (req, res) => {
         const snapshot = await deckRef.get()
         const deckData = snapshot.val();
 
-        const newCard = null;
+        let newCard = null;
         if (deckData) {
             const response = await axios.get(`https://deckofcardsapi.com/api/deck/${deckData.deck_id}/draw/?count=1`)
 
@@ -46,26 +46,6 @@ exports.drawCard = async (req, res) => {
     } catch (error) {
         console.error("Error drawing card:", error);
         res.status(500).json({ error: 'Failed to draw card' });
-    }
-};
-
-exports.updateHand = async (req, res) => {
-    const { newCard } = req.body;
-
-    try { 
-        const handRef = db.ref(`players/${getAuth().currentUser?.uid}/hand`);
-
-        const snapshot = await handRef.get()
-        const handData = snapshot.val();
-
-        const newHand = [...handData, newCard];
-
-        await handRef.set(newHand);
-
-        res.status(200).json({ message: 'Updated hand successfully'});
-    } catch (error) {
-        console.error("Error updating hand:", error);
-        res.status(500).json({ error: 'Failed to update hand' });
     }
 };
 
