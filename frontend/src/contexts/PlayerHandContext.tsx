@@ -16,8 +16,7 @@ export const PlayerHandProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const [playerState, setPlayerState] = useState<PlayerState>({
         playerId: localStorage.getItem('playerId'),
         playerName: null,
-        hand: [],
-        isLoading: true
+        hand: []
     });
 
     // Only fetch player data when deck is ready
@@ -58,12 +57,10 @@ export const PlayerHandProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             });
             setPlayerState(prev => ({
                 ...prev,
-                hand: data.hand,
-                isLoading: false
+                hand: data.hand
             }));
         } catch (error) {
             console.error("Error fetching player hand:", error);
-            setPlayerState(prev => ({ ...prev, isLoading: false }));
         }
     };
 

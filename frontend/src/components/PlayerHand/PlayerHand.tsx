@@ -9,14 +9,10 @@ import './PlayerHand.css';
 const PlayerHand: React.FC = () => {
     const { playerState, moveCard } = usePlayerHand();
     const { deckState } = useDeck();
-    const { playerName, hand, isLoading } = playerState;
+    const { playerName, hand } = playerState;
 
     if (!deckState.cardsDealt) {
         return <div className="waiting">Click deck to deal cards</div>;
-    }
-
-    if (isLoading) {
-        return <div className="loading">Dealing hand...</div>;
     }
 
     return (

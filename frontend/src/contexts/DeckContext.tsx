@@ -5,7 +5,7 @@ import { Card, DeckState } from '../types/deck.tsx';
 interface DeckContextType {
     deckState: DeckState;
     initializeDeck: () => Promise<void>;
-    drawCard: () => Promise<Card | null>;
+    drawCard: (playerId: string) => Promise<void>;
 }
 
 const DeckContext = createContext<DeckContextType | undefined>(undefined);
@@ -47,14 +47,13 @@ export const DeckProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
-    const drawCard = async () => {
+    const drawCard = async (playerId: string) => {
         try {
-            const { data: newCard } = await axios.get('http://localhost:3001/api/deck/draw');
+            const response = await axios.post('http://localhost:3001/api/deck/draw', { playerId });
             setDeckState(prev => ({
                 ...prev,
-                remaining: newCard.remaining
+                remaining: response.data.deckData.remaining
             }));
-            return newCard;
         } catch (error) {
             console.error("Error drawing card:", error);
             return null;
@@ -65,7 +64,7 @@ export const DeckProvider: React.FC<{ children: React.ReactNode }> = ({ children
         <DeckContext.Provider value={{
             deckState,
             initializeDeck,
-            drawCard
+            drawCard(playerId: string)
         }}>
             {children}
         </DeckContext.Provider>

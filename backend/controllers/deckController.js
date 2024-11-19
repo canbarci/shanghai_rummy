@@ -42,7 +42,7 @@ exports.drawCard = async (req, res) => {
             console.log("Deck not initialized yet");
         }
 
-        res.status(200).json(newCard);
+        res.status(200).json({ message: 'Card drawn successfully', deckData});
     } catch (error) {
         console.error("Error drawing card:", error);
         res.status(500).json({ error: 'Failed to draw card' });

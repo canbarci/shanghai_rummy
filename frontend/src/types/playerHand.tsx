@@ -8,5 +8,4 @@ export interface PlayerState {
     playerId: string | null;
     playerName: string | null;
     hand: Card[];
-    isLoading: boolean;
 }
