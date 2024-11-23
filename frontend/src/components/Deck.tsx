@@ -1,11 +1,15 @@
 import "../App.css"
-import React  from "react";
+import React, { useEffect, useState } from "react";
 import axios from 'axios';
-import { useEffect, useState } from 'react';
+import { getDatabase, ref, onValue} from "firebase/database"
 
 const Deck = () => {
+    const playerId = localStorage.getItem('playerId');
+    const db = getDatabase();
+    const cardsDeltRef = ref(db, `game/cardsDealt`);
+    const deckIdRef = ref(db, `game/deck/deck_id`);
     const [cardsDealt, setCardsDealt] = useState(false);
-    // const [hand, setHand] = useState<Card[]>([]);
+    const [deckId, setDeckId] = useState(null);
 
     interface Card {
         value: string;
@@ -14,51 +18,51 @@ const Deck = () => {
     }
 
     useEffect(() => {
-        const intervalId = setInterval(async () => {
-            const { data: cardsDealtData } = await axios.get('http://localhost:3001/api/deck/status');
-            if (cardsDealtData === true) {
-                setCardsDealt(true);
-                
-                clearInterval(intervalId);
-            }
-        }, 1000);
+        const cardsDealtListener = onValue(cardsDeltRef, (snapshot) => {
+            setCardsDealt(snapshot.val());
+        });
+
+        const deckIdListener = onValue(deckIdRef, (snapshot) => {
+            setDeckId(snapshot.val())
+        });
+
+        return () => {
+            cardsDealtListener();
+            deckIdListener();
+        };
     }, []);
 
     const handleImageClick = async () => {
         console.log('Image clicked!');
 
         if (cardsDealt === false) {
-            initializeDeck()
+            initializeDeck();
         } else {
-            // getPlayerHand()
-            // drawCard()
+            drawCard()
         }
     };
 
     const initializeDeck = async () => {
         try {
-            await axios.post('http://localhost:3001/api/deck/init')
+            await axios.post('http://localhost:3001/api/deck/init');
         } catch (error) {
             console.error("Error initializing deck:", error);
         }
     };
 
-    // const drawCard = async () => {
-    //     try {
-    //         const { data: newCard } = await axios.get('http://localhost:3001/api/deck/draw');
-    //         updateHand(newCard)
-    //     } catch (error) {
-    //         console.error("Error fetching new card:", error);
-    //     }
-    // }
+    const drawCard = async () => {
+        try {
+            const { data: drawnCardData } = await axios.post(`http://localhost:3001/api/deck/${deckId}/draw`);
 
-    // const updateHand = async (newCard: any) => {
-    //     try {
-    //         await axios.post('http://localhost:3001/api/deck/update-hand')
-    //     } catch (error) {
-    //         console.error("Error updating hand:", error);
-    //     }
-    // }
+            const drawnCard = drawnCardData.drawnCard
+
+            await axios.post(`http://localhost:3001/api/player-hand/${playerId}/add-card`,
+                { drawnCard }
+            );
+        } catch (error) {
+            console.error("Error drawing new card:", error);
+        }
+    }
 
     return (
         <main>

@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const playerHandController = require('../controllers/playerHandController');
 
-router.get('/status', playerHandController.getCardsDealtStatus);
 router.get('/deck', playerHandController.getDeckID);
-router.get('/name/:playerId', playerHandController.getPlayerName);
-router.post('/hand/:playerId', playerHandController.getPlayerHand)
-router.post('/update/:playerId', playerHandController.updatePlayerHand)
+router.get('/:playerId/name', playerHandController.getPlayerName);
+router.post('/:playerId/hand', playerHandController.initPlayerHand);
+router.post('/:playerId/update', playerHandController.updatePlayerHand);
+router.post('/:playerId/add-card', playerHandController.addCard);
 
 module.exports = router;

@@ -33,12 +33,14 @@ const welcomeRoutes = require('./routes/welcomeRoutes');
 const waitingRoomRoutes = require('./routes/waitingRoomRoutes');
 const deckRoutes = require('./routes/deckRoutes');
 const playerHandRoutes = require('./routes/playerHandRoutes');
+const gameRoutes = require('./routes/gameRoutes');
 
 // Routes
 app.use('/api/welcome', welcomeRoutes);
 app.use('/api/waiting-room', waitingRoomRoutes);
 app.use('/api/deck', deckRoutes);
 app.use('/api/player-hand', playerHandRoutes);
+app.use('/api/game', gameRoutes);
 
 app.use((err, req, res, next) => {
     console.error("Server error:", err);

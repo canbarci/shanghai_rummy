@@ -1,32 +1,37 @@
 import "../App.css"
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getDatabase, ref, onValue} from "firebase/database"
 import axios from 'axios';
 
 const WaitingRoomPage = () => {
     const navigate = useNavigate();
+    const db = getDatabase();
+    const gameRef = ref(db, `game`);
+    const playersRef = ref(db, `game/players`);
     const [allNames, setAllNames] = useState([]);
-    const [gameStarted, setGameStarted] = useState(false);
 
     useEffect(() => {
-        // Poll for game status every few seconds
-        const intervalId = setInterval(async () => {
-            getPlayerNames();
-            const { data: gameData } = await axios.get('http://localhost:3001/api/waiting-room/status');
-            if (gameData.started) {
-                setGameStarted(true);
-                clearInterval(intervalId);
+        // Game status listener
+        const gameListener = onValue(gameRef, (snapshot) => {
+            const gameData = snapshot.val();
+                
+            if (gameData && gameData.started === true) {
+                navigate('/game');
             }
-        }, 1000);
+        });
 
-        return () => clearInterval(intervalId); // Cleanup interval on component unmount
-    }, []); // Empty dependency array to run the effect only once
+        // Players listener
+        const playersListener = onValue(playersRef, () => {
+            getPlayerNames();
+        });
 
-    useEffect(() => {
-        if (gameStarted) {
-            navigate('/game');
-        }
-    }, [gameStarted, navigate]);
+        // Cleanup function
+        return () => {
+            gameListener();
+            playersListener();
+        };
+    }, [navigate]); // Add navigate to dependency array
 
     const getPlayerNames = async () => {
         try {

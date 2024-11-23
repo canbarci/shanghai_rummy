@@ -1,47 +1,94 @@
 import "../App.css"
 import React from "react";
+import axios from "axios";
 import { useEffect, useState } from 'react';
-import { getAuth } from 'firebase/auth';
-import { getDatabase, ref, onValue } from "firebase/database"
+import { getDatabase, ref, onValue} from "firebase/database"
+import { getAuth } from "firebase/auth";
 import Deck from '../components/Deck.tsx'
 import PlayerHand from "../components/PlayerHand/PlayerHand.tsx";
 import OtherPlayerHand from "../components/OtherPlayerHand.tsx";
 
 const GamePage = () => {
-    // const db = getDatabase();
-    // const playersRef = ref(db, 'players');
-    // const [playerIds, setPlayerIds] = useState<string[]>([]);  // Store number of cards for each player
-    // const currentUser = getAuth().currentUser?.uid;
-    // const [playersHands, setPlayersHands] = useState<{ [playerId: string]: number }>();  // Store number of cards for each player
+    const currentUser = localStorage.getItem('playerId');
+    const db = getDatabase();
+    const cardsDealtRef = ref(db, 'game/cardsDealt');
+    const [playerIds, setPlayerIds] = useState<string[]>([]);  // Store number of cards for each player
+    const [playerHands, setPlayersHands] = useState<{ [playerId: string]: number }>();  // Store number of cards for each player
 
-    // useEffect(() => {
-    //     onValue(playersRef, (snapshot) => {
-    //         const playersData = snapshot.val();
-    //         if (playersData) {
-    //             // const updatedHands: { [playerId: string]: number } = {};
-    //             // Object.keys(playersData).forEach(playerId => {
-    //             //     updatedHands[playerId] = playersData[playerId].hand.length;
-    //             // });
-    //             // setPlayersHands(updatedHands);
-    //             setPlayerIds(Object.keys(playersData));
-    //         }
-    //         console.log(playersData)
-    //     });
-    // }, []);
+    useEffect(() => {
+        const cardsDealtListener = onValue(cardsDealtRef, (snapshot) => {
+            const cardsDealt = snapshot.val()
+            if (cardsDealt === true) {
+                getPlayerIds();
+            }
+        })
+
+        return () => {
+            cardsDealtListener();
+        };
+    }, []); // Empty dependency array to run the effect only once
+
+    // Set up individual listeners for each player's hand
+    useEffect(() => {
+        if (playerIds) {
+            // Create an object to store unsubscribe functions
+            const listeners: { [playerId: string]: () => void } = {};
+
+            // Set up a listener for each player's hand
+            playerIds.forEach(playerId => {
+                const playerHandRef = ref(db, `game/players/${playerId}/hand`);
+                
+                const listener = onValue(playerHandRef, (snapshot) => {
+                    const handData = snapshot.val();
+                    if (handData) {
+                        setPlayersHands(prevHands => ({
+                            ...prevHands,
+                            [playerId]: handData.length
+                        }));
+                    }
+                });
+
+                listener[playerId] = listeners;
+            });
+
+            // Cleanup function to remove all listeners
+            return () => {
+                Object.values(listeners).forEach(listener => unsubscribe());
+            };
+        }
+    }, [playerIds]);
+
+    useEffect(() => {
+        console.log("Player hands updated:", playerHands);
+    }, [playerHands]);
+
+    const getPlayerIds = async () => {
+        try {
+            const { data: playersData } = await axios.get(`http://localhost:3001/api/game/players`);
+            let playerIds = [];
+            Object.keys(playersData.players).forEach(playerId => {
+                playerIds = [...playerIds, playerId]
+            });
+            setPlayerIds(playerIds)
+        } catch (error) {
+            console.error("Error fetching player name:", error);
+        }
+    };
 
     return (
         <div>
             {<Deck />}
-            {<PlayerHand />}
-            {/* {playerIds.map((playerId) => (
-                <div>
-                    {playerId === currentUser ? (
-                        <PlayerHand />
-                    ) : (
-                        <OtherPlayerHand cardsCount={11} />
-                    )}
-                </div>
-            ))} */}
+            <PlayerHand />
+            {playerHands && Object.entries(playerHands).map(([playerId, cardCount]) => {
+                // Skip rendering if this is the current user
+                if (playerId === currentUser) return null;
+                
+                return (
+                    <div key={playerId}>
+                        <OtherPlayerHand playerId={playerId} cardsCount={cardCount} />
+                    </div>
+                );
+            })}
         </div>
     );
 };
