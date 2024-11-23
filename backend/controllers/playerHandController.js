@@ -3,26 +3,12 @@ const axios = require('axios');
 
 const db = getDatabase();
 
-exports.getCardsDealtStatus = async (req, res) => {
-    try {
-        const cardsDealtRef = db.ref(`game/cardsDealt`);
-
-        const snapshot = await cardsDealtRef.get();
-        let cardsDealt = snapshot.val();
-
-        res.json({ cardsDealt });
-    } catch (error) {
-        console.error("Error retrieving cards dealt status:", error);
-        res.status(500).json({ error: "Failed to retrieve cards dealt status" });
-    }
-};
-
 exports.getDeckID = async (req, res) => {
     try {
         const deckIdRef = db.ref('game/deck/deck_id');
 
         const snapshot = await deckIdRef.get();
-        let deckId = snapshot.val();
+        const deckId = snapshot.val();
 
         res.json({ deckId });
     } catch (error) {
@@ -37,7 +23,7 @@ exports.getPlayerName = async (req, res) => {
     try {        
         const nameRef = db.ref(`game/players/${playerId}/playerName`);
         const snapshot = await nameRef.get();
-        let name = snapshot.val();
+        const name = snapshot.val();
 
         if (!name) {
             return res.status(404).json({ error: 'Player not found' });
@@ -46,14 +32,11 @@ exports.getPlayerName = async (req, res) => {
         res.json({ name });
     } catch (error) {
         console.error("Error retrieving player name:", error);
-        if (error.code === 'auth/argument-error') {
-            return res.status(401).json({ error: 'Invalid token' });
-        }
         res.status(500).json({ error: "Failed to retrieve player name" });
     }
 };
 
-exports.getPlayerHand = async (req, res) => {
+exports.initPlayerHand = async (req, res) => {
     const { deckId } = req.body;
     const { playerId } = req.params; // Get playerId from URL parameter
 
@@ -84,10 +67,33 @@ exports.updatePlayerHand = async (req, res) => {
 
         await handRef.set(newHand);
 
-        res.status(200).json({ message: 'Player hand updated successfully', playerId });
+        res.status(200).json({ message: 'Player hand updated successfully' });
     } catch (error) {
         console.error("Error updating player hand:", error);
         res.status(500).json({ error: "Failed to update player hand" });
     }
 }
+
+exports.addCard = async (req, res) => {
+    const { drawnCard } = req.body;
+    const { playerId } = req.params; // Get playerId from URL parameter
+
+    try {
+        const handRef = db.ref(`game/players/${playerId}/hand`);
+
+        const snapshot = await handRef.get();
+        const hand = snapshot.val()
+
+        const newHand = [...hand, drawnCard]
+
+        await handRef.set(newHand);
+
+        res.status(200).json({ message: 'Added card successfully' });
+    } catch (error) {
+        console.error("Error adding card", error);
+        res.status(500).json({ error: "Failed to add card" });
+    }
+}
+
+
 

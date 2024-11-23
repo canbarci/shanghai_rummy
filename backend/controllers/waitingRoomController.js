@@ -39,17 +39,3 @@ exports.getPlayerNames = async (req, res) => {
         res.status(500).json({ error: "Failed to retrieve player names" });
     }
 };
-
-// Get game status
-exports.getGameStatus = async (req, res) => {
-    try {
-        const gameRef = db.ref(`game`);
-        
-        const snapshot = await gameRef.get();
-        const gameData = snapshot.val();
-
-        res.status(200).json(gameData);
-    } catch (error) {
-        res.status(500).json({ error: "Failed to retrieve game status" });
-    }
-};

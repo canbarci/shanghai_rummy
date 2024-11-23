@@ -1,17 +1,19 @@
 import "../App.css"
-import React from "react";
-import { ChangeEvent, useState } from 'react';
+import React, { ChangeEvent, useState } from "react";
 import {Link} from 'react-router-dom'
 import axios from "axios";
+import { getAuth, signInAnonymously } from "firebase/auth";
 
 const WelcomePage = () => {
+    const auth = getAuth();
     let [newName, setName] = useState('');
 
     const addPlayer = async (playerName: string) => {
         try {
-            const response = await axios.post('http://localhost:3001/api/welcome/add-player', { 
-                playerName 
-            });
+            signInAnonymously(auth);
+            const response = await axios.post('http://localhost:3001/api/welcome/add-player', 
+                { playerName }
+            );
             // Store playerId in localStorage
             localStorage.setItem('playerId', response.data.playerId);
         } catch (error) {

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { getDatabase, ref, onValue} from "firebase/database"
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import axios from "axios";
@@ -13,32 +14,46 @@ interface CardType {
 
 const PlayerHand: React.FC = () => {
     const playerId = localStorage.getItem('playerId');
+    const db = getDatabase();
+    const cardsDealtRef = ref(db, `game/cardsDealt`);
+    const playerHandRef = ref(db, `game/players/${playerId}/hand`);
     const [deckId, setDeckId] = useState(null);
     const [name, setName] = useState(null);
-    const [hand, setHand] = useState<CardType[]>([]);
+    const [playerHand, setPlayerHand] = useState<CardType[]>([]);
 
     useEffect(() => {
-        const intervalId = setInterval(async () => {
-            const { data: cardsDealt } = await axios.get('http://localhost:3001/api/player-hand/status');
-            if (cardsDealt.cardsDealt === true) {
+        const cardsDealtListener = onValue(cardsDealtRef, (snapshot) => {
+            const cardsDealt = snapshot.val()
+            if (cardsDealt === true) {
                 getID();
                 getName();
-                clearInterval(intervalId);
             }
-        }, 1000);
+        });
+
+        const playerHandListener = onValue(playerHandRef, (snapshot) => {
+            const hand = snapshot.val()
+            if (hand) {
+                setPlayerHand(hand);
+            }
+        });
+
+        return () => {
+            cardsDealtListener();
+            playerHandListener();
+        };
     }, []); // Empty dependency array to run the effect only once
 
     useEffect(() => {
         // Only fetch hand when deckId is available
         if (deckId) {
-            getHand();
+            initHand();
         }
     }, [deckId]); // This effect will run every time deckId changes
 
     const getID = async () => {
         try {
-            const { data: deckId } = await axios.get('http://localhost:3001/api/player-hand/deck');
-            setDeckId(deckId.deckId)
+            const { data: deckIdData } = await axios.get('http://localhost:3001/api/player-hand/deck');
+            setDeckId(deckIdData.deckId)
         } catch (error) {
             console.error("Error fetching deck id:", error);
         }
@@ -46,21 +61,20 @@ const PlayerHand: React.FC = () => {
 
     const getName = async () => {
         try {
-            const response = await axios.get(`http://localhost:3001/api/player-hand/name/${playerId}`);
-            setName(response.data.name);
+            const { data: nameData } = await axios.get(`http://localhost:3001/api/player-hand/${playerId}/name`);
+            setName(nameData.name);
         } catch (error) {
             console.error("Error fetching player name:", error);
         }
     };
 
-    const getHand = async () => {
+    const initHand = async () => {
         if (deckId) {
-            console.log(deckId)
             try {
-                const { data: hand } = await axios.post(`http://localhost:3001/api/player-hand/hand/${playerId}`,
-                    { deckId: deckId }
+                const { data: handData } = await axios.post(`http://localhost:3001/api/player-hand/${playerId}/hand`,
+                    { deckId }
                 );
-                setHand(hand.hand);
+                setPlayerHand(handData.hand);
             } catch (error) {
                 console.error("Error fetching player hand:", error);
             }
@@ -68,7 +82,7 @@ const PlayerHand: React.FC = () => {
     };
 
     const moveCard = async (dragIndex: number, hoverIndex: number) => {
-        const newHand = [...hand];
+        const newHand = [...playerHand];
         const draggedCard = newHand[dragIndex];
 
         // Reorder the cards
@@ -76,11 +90,11 @@ const PlayerHand: React.FC = () => {
         newHand.splice(hoverIndex, 0, draggedCard);
 
         // Update the state with the new order
-        setHand(newHand);
+        setPlayerHand(newHand);
 
         // Update the database with the new order (if needed)
-        await axios.post(`http://localhost:3001/api/player-hand/update/${playerId}`,
-            { newHand: newHand }
+        await axios.post(`http://localhost:3001/api/player-hand/${playerId}/update`,
+            { newHand }
         );
     };
 
@@ -89,7 +103,7 @@ const PlayerHand: React.FC = () => {
             <main>
                 <h1 className="player-name">{name}</h1>
                 <div className="player-hand">
-                    {hand.map((card: CardType, index: number) => (
+                    {playerHand.map((card: CardType, index: number) => (
                         <Card key={index} card={card} index={index} moveCard={moveCard} />
                     ))}
                 </div>
