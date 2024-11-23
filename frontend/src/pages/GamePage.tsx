@@ -6,7 +6,7 @@ import { getDatabase, ref, onValue} from "firebase/database"
 import { getAuth } from "firebase/auth";
 import Deck from '../components/Deck.tsx'
 import PlayerHand from "../components/PlayerHand/PlayerHand.tsx";
-import OtherPlayerHand from "../components/OtherPlayerHand.tsx";
+import OtherPlayerHand from "../components/OtherPlayerHand/OtherPlayerHand.tsx";
 
 const GamePage = () => {
     const currentUser = localStorage.getItem('playerId');
@@ -53,22 +53,15 @@ const GamePage = () => {
 
             // Cleanup function to remove all listeners
             return () => {
-                Object.values(listeners).forEach(listener => unsubscribe());
+                Object.values(listeners).forEach(listener => listener());
             };
         }
     }, [playerIds]);
 
-    useEffect(() => {
-        console.log("Player hands updated:", playerHands);
-    }, [playerHands]);
-
     const getPlayerIds = async () => {
         try {
             const { data: playersData } = await axios.get(`http://localhost:3001/api/game/players`);
-            let playerIds = [];
-            Object.keys(playersData.players).forEach(playerId => {
-                playerIds = [...playerIds, playerId]
-            });
+            const playerIds = Object.keys(playersData.players);
             setPlayerIds(playerIds)
         } catch (error) {
             console.error("Error fetching player name:", error);

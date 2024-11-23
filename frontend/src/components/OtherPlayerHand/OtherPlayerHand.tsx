@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import './OtherPlayerHand.css';
 
 interface OtherPlayerHandProps {
     playerId: string;
@@ -24,7 +25,7 @@ const OtherPlayerHand: React.FC<OtherPlayerHandProps> = ({ playerId, cardsCount 
     
     return (
         <main>
-            <h1 className="player-name">{name}</h1>
+            <h1 className="other-player-name">{name}</h1>
             <div className="other-player-hand">
                 {Array.from({ length: cardsCount }).map((_, index) => (
                     <img
