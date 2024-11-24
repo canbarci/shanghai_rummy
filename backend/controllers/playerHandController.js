@@ -3,20 +3,6 @@ const axios = require('axios');
 
 const db = getDatabase();
 
-exports.getDeckID = async (req, res) => {
-    try {
-        const deckIdRef = db.ref('game/deck/deck_id');
-
-        const snapshot = await deckIdRef.get();
-        const deckId = snapshot.val();
-
-        res.json({ deckId });
-    } catch (error) {
-        console.error("Error retrieving deck id:", error);
-        res.status(500).json({ error: "Failed to retrieve deck id" });
-    }
-};
-
 exports.getPlayerName = async (req, res) => {
     const { playerId } = req.params; // Get playerId from URL parameter
 
@@ -29,7 +15,7 @@ exports.getPlayerName = async (req, res) => {
             return res.status(404).json({ error: 'Player not found' });
         }
 
-        res.json({ name });
+        res.status(200).json(name);
     } catch (error) {
         console.error("Error retrieving player name:", error);
         res.status(500).json({ error: "Failed to retrieve player name" });
@@ -44,14 +30,18 @@ exports.initPlayerHand = async (req, res) => {
         const handRef = db.ref(`game/players/${playerId}/hand`);
         const remainingRef = db.ref(`game/deck/remaining`);
 
-        const response = await axios.get(`https://deckofcardsapi.com/api/deck/${deckId}/draw/?count=11`);
-        const hand = response.data.cards;
-        const remainingCards = response.data.remaining;
+        const { data: handData } = await axios.get(`https://deckofcardsapi.com/api/deck/${deckId}/draw/?count=11`);
+        
+        const hand = handData.cards;
+        const remainingCards = handData.remaining;
 
         await handRef.set(hand);
         await remainingRef.set(remainingCards);
 
-        res.json({ hand });
+        res.status(200).json({ 
+            message: 'Player hand retrieved successfully', 
+            hand 
+        });
     } catch (error) {
         console.error("Error retrieving player hand:", error);
         res.status(500).json({ error: "Failed to retrieve player hand" });
@@ -86,6 +76,35 @@ exports.addCard = async (req, res) => {
 
         const newHand = [...hand, drawnCard]
 
+        await handRef.set(newHand);
+
+        res.status(200).json({ message: 'Added card successfully' });
+    } catch (error) {
+        console.error("Error adding card", error);
+        res.status(500).json({ error: "Failed to add card" });
+    }
+}
+
+exports.discardCard = async (req, res) => {
+    const { playerId, index } = req.params; // Get playerId from URL parameter
+
+    try {
+        const handRef = db.ref(`game/players/${playerId}/hand`);
+        const cardRef = db.ref(`game/players/${playerId}/hand/${index}`);
+
+        const cardSnapshot = await cardRef.get();
+        const card = cardSnapshot.val()
+
+        await axios.post(`http://localhost:3001/api/discard-pile/add-card`,
+            { card }
+        );
+
+        const handSnapshot = await handRef.get();
+        const hand = handSnapshot.val()
+
+        const newHand = [...hand];
+        newHand.splice(index, 1);
+        
         await handRef.set(newHand);
 
         res.status(200).json({ message: 'Added card successfully' });

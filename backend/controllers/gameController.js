@@ -10,7 +10,7 @@ exports.getPlayers = async (req, res) => {
         const snapshot = await playersRef.get();
         const players = snapshot.val();
 
-        res.json({ players });
+        res.status(200).json(players);
     } catch (error) {
         console.error("Error initializing deck:", error);
         res.status(500).json({ error: 'Failed to initialize deck' });

@@ -32,6 +32,7 @@ try {
 const welcomeRoutes = require('./routes/welcomeRoutes');
 const waitingRoomRoutes = require('./routes/waitingRoomRoutes');
 const deckRoutes = require('./routes/deckRoutes');
+const discardPileRoutes = require('./routes/discardPileRoutes');
 const playerHandRoutes = require('./routes/playerHandRoutes');
 const gameRoutes = require('./routes/gameRoutes');
 
@@ -39,6 +40,7 @@ const gameRoutes = require('./routes/gameRoutes');
 app.use('/api/welcome', welcomeRoutes);
 app.use('/api/waiting-room', waitingRoomRoutes);
 app.use('/api/deck', deckRoutes);
+app.use('/api/discard-pile', discardPileRoutes);
 app.use('/api/player-hand', playerHandRoutes);
 app.use('/api/game', gameRoutes);
 

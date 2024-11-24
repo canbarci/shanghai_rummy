@@ -1,10 +1,14 @@
 .other-player-hand {
     display: flex;
     flex-direction: row; /* Makes the cards align horizontally */
-    gap: 15px; /* Optional: Adds space between the cards */
+    padding: 5px;
 }
 
 .other-player-hand img {
+    position: relative;
     width: 100px; /* You can adjust the size of the card images */
     height: auto; /* Maintain the aspect ratio */
+    border: 2px solid transparent;
+    border-radius: 4px;
+    padding: 5px;
 }

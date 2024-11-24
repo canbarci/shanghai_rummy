@@ -3,22 +3,39 @@ const axios = require('axios');
 
 const db = getDatabase();
 
-exports.initDeck = async (req, res) => {
+exports.initialize = async (req, res) => {
     try { 
         const cardsDealtRef = db.ref(`game/cardsDealt`);
         const deckRef = db.ref(`game/deck`);
 
-        const response = await axios.get('https://deckofcardsapi.com/api/deck/new/shuffle/?deck_count=2&jokers_enabled=true');
-
-        const deckData = response.data;
+        const { data: deckData } = await axios.get('https://deckofcardsapi.com/api/deck/new/shuffle/?deck_count=2&jokers_enabled=true');
 
         await deckRef.set(deckData);
         await cardsDealtRef.set(true);
 
-        res.status(200).json({ message: 'Deck initiazlized successfully', deckData });
+        await axios.post('http://localhost:3001/api/discard-pile/init');
+
+        res.status(200).json({ 
+            message: 'Deck initiazlized successfully', 
+            deckData 
+        });
     } catch (error) {
         console.error("Error initializing deck:", error);
         res.status(500).json({ error: 'Failed to initialize deck' });
+    }
+};
+
+exports.getDeckID = async (req, res) => {
+    try {
+        const deckIdRef = db.ref('game/deck/deck_id');
+
+        const snapshot = await deckIdRef.get();
+        const deckId = snapshot.val();
+
+        res.status(200).json(deckId);
+    } catch (error) {
+        console.error("Error retrieving deck id:", error);
+        res.status(500).json({ error: "Failed to retrieve deck id" });
     }
 };
 
@@ -28,14 +45,17 @@ exports.drawCard = async (req, res) => {
     try { 
         const remainingRef = db.ref(`game/deck/remaining`);
 
-        const response = await axios.get(`https://deckofcardsapi.com/api/deck/${deckId}/draw/?count=1`)
+        const { data: drawnCardData } = await axios.get(`https://deckofcardsapi.com/api/deck/${deckId}/draw/?count=1`)
 
-        const drawnCard = response.data.cards[0];
-        const remaining = response.data.remaining;
+        const drawnCard = drawnCardData.cards[0];
+        const remaining = drawnCardData.remaining;
 
         remainingRef.set(remaining);
 
-        res.status(200).json({ message: 'Card drawn successfully', drawnCard});
+        res.status(200).json({ 
+            message: 'Card drawn successfully', 
+            drawnCard
+        });
     } catch (error) {
         console.error("Error drawing card:", error);
         res.status(500).json({ error: 'Failed to draw card' });

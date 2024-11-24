@@ -23,7 +23,10 @@ exports.addPlayer = async (req, res) => {
         // Set up onDisconnect behavior to remove player and game data
         gameRef.onDisconnect().remove();
 
-        res.status(200).json({ message: 'Player added successfully', playerId });
+        res.status(200).json({ 
+            message: 'Player added successfully', 
+            playerId 
+        });
     } catch (error) {
         console.error("Error adding player:", error);
         res.status(500).json({ error: 'Failed to add player' });
