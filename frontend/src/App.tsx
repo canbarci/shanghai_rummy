@@ -1,7 +1,7 @@
 import React from "react";
 import {BrowserRouter, Routes, Route } from "react-router-dom";
 import './App.css';
-import GamePage from "./pages/GamePage.tsx";
+import GamePage from "./pages/GamePage/GamePage.tsx";
 import WaitingRoomPage from "./pages/WaitingRoomPage.tsx";
 import WelcomePage from "./pages/WelcomePage.tsx";
 import { initializeApp } from "firebase/app";

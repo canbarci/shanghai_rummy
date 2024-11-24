@@ -31,7 +31,7 @@ const WaitingRoomPage = () => {
             gameListener();
             playersListener();
         };
-    }, [navigate]); // Add navigate to dependency array
+    }, [allNames, navigate]); // Add navigate to dependency array
 
     const getPlayerNames = async () => {
         try {

@@ -11,11 +11,11 @@ const WelcomePage = () => {
     const addPlayer = async (playerName: string) => {
         try {
             signInAnonymously(auth);
-            const response = await axios.post('http://localhost:3001/api/welcome/add-player', 
+            const { data: playerData } = await axios.post('http://localhost:3001/api/welcome/add-player', 
                 { playerName }
             );
             // Store playerId in localStorage
-            localStorage.setItem('playerId', response.data.playerId);
+            localStorage.setItem('playerId', playerData.playerId);
         } catch (error) {
             console.error("Error adding player:", error);
         }

@@ -2,6 +2,8 @@ import "../App.css"
 import React, { useEffect, useState } from "react";
 import axios from 'axios';
 import { getDatabase, ref, onValue} from "firebase/database"
+import { initializeAuth } from "firebase/auth";
+import { initializeDiscardPile } from "../../../backend/controllers/discardPileController";
 
 const Deck = () => {
     const playerId = localStorage.getItem('playerId');
@@ -10,12 +12,6 @@ const Deck = () => {
     const deckIdRef = ref(db, `game/deck/deck_id`);
     const [cardsDealt, setCardsDealt] = useState(false);
     const [deckId, setDeckId] = useState(null);
-
-    interface Card {
-        value: string;
-        suit: string;
-        image: string;
-    }
 
     useEffect(() => {
         const cardsDealtListener = onValue(cardsDeltRef, (snapshot) => {
@@ -36,13 +32,13 @@ const Deck = () => {
         console.log('Image clicked!');
 
         if (cardsDealt === false) {
-            initializeDeck();
+            initialize();
         } else {
             drawCard()
         }
     };
 
-    const initializeDeck = async () => {
+    const initialize = async () => {
         try {
             await axios.post('http://localhost:3001/api/deck/init');
         } catch (error) {

@@ -1,12 +1,15 @@
-import "../App.css"
+import "../../App.css"
 import React from "react";
 import axios from "axios";
 import { useEffect, useState } from 'react';
 import { getDatabase, ref, onValue} from "firebase/database"
 import { getAuth } from "firebase/auth";
-import Deck from '../components/Deck.tsx'
-import PlayerHand from "../components/PlayerHand/PlayerHand.tsx";
-import OtherPlayerHand from "../components/OtherPlayerHand/OtherPlayerHand.tsx";
+import Deck from '../../components/Deck.tsx'
+import PlayerHand from "../../components/PlayerHand/PlayerHand.tsx";
+import OtherPlayerHand from "../../components/OtherPlayerHand/OtherPlayerHand.tsx";
+import DiscardPile from "../../components/DiscardPile.tsx";
+import './GamePage.css';
+
 
 const GamePage = () => {
     const currentUser = localStorage.getItem('playerId');
@@ -60,8 +63,8 @@ const GamePage = () => {
 
     const getPlayerIds = async () => {
         try {
-            const { data: playersData } = await axios.get(`http://localhost:3001/api/game/players`);
-            const playerIds = Object.keys(playersData.players);
+            const { data: players } = await axios.get(`http://localhost:3001/api/game/players`);
+            const playerIds = Object.keys(players);
             setPlayerIds(playerIds)
         } catch (error) {
             console.error("Error fetching player name:", error);
@@ -69,8 +72,9 @@ const GamePage = () => {
     };
 
     return (
-        <div>
+        <div className="game">
             {<Deck />}
+            {<DiscardPile />}
             <PlayerHand />
             {playerHands && Object.entries(playerHands).map(([playerId, cardCount]) => {
                 // Skip rendering if this is the current user

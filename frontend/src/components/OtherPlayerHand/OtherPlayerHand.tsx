@@ -13,8 +13,8 @@ const OtherPlayerHand: React.FC<OtherPlayerHandProps> = ({ playerId, cardsCount 
     useEffect(() => {
         const getName = async () => {
             try {
-                const { data: nameData } = await axios.get(`http://localhost:3001/api/player-hand/${playerId}/name`);
-                setName(nameData.name);
+                const { data: name } = await axios.get(`http://localhost:3001/api/player-hand/${playerId}/name`);
+                setName(name);
             } catch (error) {
                 console.error("Error fetching player name:", error);
             }
