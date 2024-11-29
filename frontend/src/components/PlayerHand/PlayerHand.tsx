@@ -17,10 +17,14 @@ const PlayerHand: React.FC = () => {
     const db = getDatabase();
     const cardsDealtRef = ref(db, `game/cardsDealt`);
     const playerHandRef = ref(db, `game/players/${playerId}/hand`);
+    const currentPlayerRef = ref(db, `game/currentPlayer`);
+    const cardDrawnRef = ref(db, `game/players/${playerId}/cardDrawn`);
     const [deckId, setDeckId] = useState(null);
     const [name, setName] = useState(null);
     const [playerHand, setPlayerHand] = useState<CardType[]>([]);
     const [activeCardIndex, setActiveCardIndex] = useState<number | null>(null);
+    const [currentPlayer, setCurrentPlayer] = useState(null);
+    const [cardDrawn, setCardDrawn] = useState(false);
 
     useEffect(() => {
         const cardsDealtListener = onValue(cardsDealtRef, (snapshot) => {
@@ -38,9 +42,19 @@ const PlayerHand: React.FC = () => {
             }
         });
 
+        const currentPlayerListener = onValue(currentPlayerRef, (snapshot) => {
+            setCurrentPlayer(snapshot.val())
+        });
+
+        const cardDrawnListener = onValue(cardDrawnRef, (snapshot) => {
+            setCardDrawn(snapshot.val())
+        });
+
         return () => {
             cardsDealtListener();
             playerHandListener();
+            currentPlayerListener();
+            cardDrawnListener();
         };
     }, []); // Empty dependency array to run the effect only once
 
@@ -102,14 +116,34 @@ const PlayerHand: React.FC = () => {
     };
 
     const handleCardClick = (index: number) => {
-        setActiveCardIndex((prev) => (prev === index ? null : index)); // Toggle the button
+        if (playerId === currentPlayer) {
+            setActiveCardIndex((prev) => (prev === index ? null : index)); // Toggle the button
+        } else {
+            setActiveCardIndex(null); // Disable the button
+        }
     };
 
     const handleDiscard = async (index: number) => {
-        console.log(`Discarding card at index ${index}`);
-        await axios.post(`http://localhost:3001/api/player-hand/${playerId}/discard-card/${index}`);
-        setActiveCardIndex(null); // Hide the button after discard
+        if (!cardDrawn) {
+            // You could use a toast library or add a state to show an error message
+            alert("You must draw cards before discarding.");
+            return;
+        }
+
+        if (playerId === currentPlayer) {
+            await axios.post(`http://localhost:3001/api/player-hand/${playerId}/discard-card/${index}`);
+            setActiveCardIndex(null); // Hide the button after discard
+            updateTurn();
+        }
     };
+
+    const updateTurn = async () => {
+        const { data: players } = await axios.get(`http://localhost:3001/api/game/players`);
+        const playerIds = Object.keys(players);
+        await axios.post(`http://localhost:3001/api/game/update-turn`, 
+            { playerIds }
+        );
+    }
 
     return (
         <DndProvider backend={HTML5Backend}>

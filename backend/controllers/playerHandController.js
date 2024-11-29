@@ -70,6 +70,7 @@ exports.addCard = async (req, res) => {
 
     try {
         const handRef = db.ref(`game/players/${playerId}/hand`);
+        const cardDrawnRef = db.ref(`game/players/${playerId}/cardDrawn`);
 
         const snapshot = await handRef.get();
         const hand = snapshot.val()
@@ -77,6 +78,7 @@ exports.addCard = async (req, res) => {
         const newHand = [...hand, drawnCard]
 
         await handRef.set(newHand);
+        await cardDrawnRef.set(true);
 
         res.status(200).json({ message: 'Added card successfully' });
     } catch (error) {
@@ -91,6 +93,7 @@ exports.discardCard = async (req, res) => {
     try {
         const handRef = db.ref(`game/players/${playerId}/hand`);
         const cardRef = db.ref(`game/players/${playerId}/hand/${index}`);
+        const cardDrawnRef = db.ref(`game/players/${playerId}/cardDrawn`);
 
         const cardSnapshot = await cardRef.get();
         const card = cardSnapshot.val()
@@ -106,6 +109,7 @@ exports.discardCard = async (req, res) => {
         newHand.splice(index, 1);
         
         await handRef.set(newHand);
+        await cardDrawnRef.set(false);
 
         res.status(200).json({ message: 'Added card successfully' });
     } catch (error) {

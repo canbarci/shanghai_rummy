@@ -4,10 +4,10 @@ import axios from "axios";
 import { useEffect, useState } from 'react';
 import { getDatabase, ref, onValue} from "firebase/database"
 import { getAuth } from "firebase/auth";
-import Deck from '../../components/Deck.tsx'
+import Deck from '../../components/Deck/Deck.tsx'
 import PlayerHand from "../../components/PlayerHand/PlayerHand.tsx";
 import OtherPlayerHand from "../../components/OtherPlayerHand/OtherPlayerHand.tsx";
-import DiscardPile from "../../components/DiscardPile.tsx";
+import DiscardPile from "../../components/DiscardPile/DiscardPile.tsx";
 import './GamePage.css';
 
 
@@ -65,11 +65,22 @@ const GamePage = () => {
         try {
             const { data: players } = await axios.get(`http://localhost:3001/api/game/players`);
             const playerIds = Object.keys(players);
-            setPlayerIds(playerIds)
+            setPlayerIds(playerIds);
+            setCurrentPlayer(playerIds);
         } catch (error) {
             console.error("Error fetching player name:", error);
         }
     };
+
+    const setCurrentPlayer = async (playerIds: string[]) => {
+        try {
+            await axios.post(`http://localhost:3001/api/game/turn`, 
+                { playerIds }
+            );
+        } catch (error) {
+            console.error("Error setting turn order:", error);
+        }
+    }
 
     return (
         <div className="game">
