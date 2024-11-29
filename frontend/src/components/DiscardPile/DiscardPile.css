@@ -1,0 +1,13 @@
+.discard-pile {
+    padding: 7px;
+}
+
+.discard-pile .card-placeholder {
+    width: 226px;  /* Same width as a card */
+    height: 314px; /* Same height as a card */
+    border: 2px dashed #888;
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
