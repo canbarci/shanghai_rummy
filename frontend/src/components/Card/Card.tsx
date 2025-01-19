@@ -3,24 +3,24 @@ import { useDrag, useDrop } from "react-dnd";
 import "./Card.css";
 
 interface CardProps {
-    card: { value: string; suit: string; image: string };
+    card: {
+        value: string;
+        suit: string;
+        image: string;
+    };
     index: number;
     moveCard: (dragIndex: number, hoverIndex: number) => void;
-    isActive: boolean; // Determines if this card is "active"
-    onClick: () => void; // Callback for toggling active state
-    onDiscard?: () => void; // Callback for discarding the card
+    onClick: () => void;
+    onDiscard: () => void;
+    isDiscardPile?: boolean;
+    isActive?: boolean;
 }
 
-const Card: React.FC<CardProps> = ({ card, index, moveCard, isActive, onClick, onDiscard }) => {
-    const [{ isDragging }, drag, preview] = useDrag({
+const Card: React.FC<CardProps> = ({ card, index, moveCard, onClick, onDiscard, isActive, isDiscardPile }) => {
+    const [{ isDragging }, drag] = useDrag({
         type: "CARD",
         item: { index },
-        end: (draggedItem, monitor) => {
-            const didDrop = monitor.didDrop();
-            if (!didDrop && draggedItem) {
-                moveCard(draggedItem.index, index);
-            }
-        },
+        canDrag: !isDiscardPile,
         collect: (monitor) => ({
             isDragging: !!monitor.isDragging(),
         }),

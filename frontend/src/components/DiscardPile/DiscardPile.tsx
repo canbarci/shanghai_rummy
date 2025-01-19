@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import axios from 'axios';
-import { getDatabase, ref, onValue} from "firebase/database"
+import { getDatabase, ref, onValue} from "firebase/database";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
+import Card from "../Card/Card.tsx";
 import "./DiscardPile.css"
 
 interface CardType {
@@ -79,30 +82,32 @@ const DiscardPile = () => {
             console.error("Error drawing new card:", error);
         }
     }
+
+    // Dummy function for Card component moveCard prop
+    const moveCard = () => {};
     
     return (
-        <main>
-            <div className="discard-pile">
-                {total > 0 && discardedCard ? (
-                    <div className="discard-card">
-                        <img 
-                            src={discardedCard.image} 
-                            alt={`${discardedCard.value} of ${discardedCard.suit}`}
-                            className="card-image"
+        <DndProvider backend={HTML5Backend}>
+            <main>
+                <div className="discard-pile">
+                    {total > 0 && discardedCard ? (
+                        <Card
+                            card={discardedCard}
+                            index={0}
+                            moveCard={moveCard}
                             onClick={handleImageClick}
-                            style={{
-                                cursor: !cardDrawn ? 'pointer' : 'not-allowed',
-                                pointerEvents: !cardDrawn ? 'auto' : 'none'
-                            }}
+                            onDiscard={() => {}}
+                            isActive={false}
+                            isDiscardPile={true}
                         />
-                    </div>
-                ) : (
-                    <div className="discard-card empty-discard">
-                        <div className="card-placeholder"></div>
-                    </div>
-                )}
-            </div>
-        </main>
+                    ) : (
+                        <div className="card empty-discard">
+                            <div className="card-placeholder">Discard Pile</div>
+                        </div>
+                    )}
+                </div>
+            </main>
+        </DndProvider>
     );
 }
 

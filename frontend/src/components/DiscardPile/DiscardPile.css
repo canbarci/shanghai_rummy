@@ -2,12 +2,29 @@
     padding: 7px;
 }
 
-.discard-pile .card-placeholder {
-    width: 226px;  /* Same width as a card */
-    height: 314px; /* Same height as a card */
+.empty-discard {
+    opacity: 0.5;
+}
+
+.card-placeholder {
+    width: 200px;
+    height: 273px;
     border: 2px dashed #888;
     border-radius: 10px;
     display: flex;
     justify-content: center;
     align-items: center;
+    background-color: rgba(200, 200, 200, 0.1);
+    font-style: italic;
+    color: #888;
+}
+
+/* Override some Card component styles for discard pile */
+.discard-pile .card {
+    cursor: pointer;
+}
+
+.discard-pile .card.disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
 }

@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { getDatabase, ref, onValue} from "firebase/database"
-import { DndProvider } from "react-dnd";
-import { HTML5Backend } from 'react-dnd-html5-backend';
+import { getDatabase, ref, onValue } from "firebase/database";
+import { DndProvider, useDrag, useDrop } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 import axios from "axios";
 import Card from "../Card/Card.tsx"; // Import Card component
 import './PlayerHand.css';
+import LayDownGroups from "../LayDownGroups/LayDownGroups.tsx";
 
 interface CardType {
     value: string;
@@ -12,7 +13,13 @@ interface CardType {
     image: string;
 }
 
-const PlayerHand: React.FC = () => {
+export interface GroupConfig {
+    type: 'book' | 'run';
+    minCards: number;
+    maxGroups: number;
+}
+
+const PlayerHand = () => {
     const playerId = localStorage.getItem('playerId');
     const db = getDatabase();
     const cardsDealtRef = ref(db, `game/cardsDealt`);
@@ -21,10 +28,12 @@ const PlayerHand: React.FC = () => {
     const cardDrawnRef = ref(db, `game/players/${playerId}/cardDrawn`);
     const [deckId, setDeckId] = useState(null);
     const [name, setName] = useState(null);
+    const [cardsDealt, setCardsDealt] = useState(false);
     const [playerHand, setPlayerHand] = useState<CardType[]>([]);
     const [activeCardIndex, setActiveCardIndex] = useState<number | null>(null);
     const [currentPlayer, setCurrentPlayer] = useState(null);
     const [cardDrawn, setCardDrawn] = useState(false);
+    const [layingDown, setLayingDown] = useState(false);
 
     useEffect(() => {
         const cardsDealtListener = onValue(cardsDealtRef, (snapshot) => {
@@ -32,6 +41,7 @@ const PlayerHand: React.FC = () => {
             if (cardsDealt === true) {
                 getID();
                 getName();
+                setCardsDealt(true);
             }
         });
 
@@ -56,14 +66,13 @@ const PlayerHand: React.FC = () => {
             currentPlayerListener();
             cardDrawnListener();
         };
-    }, []); // Empty dependency array to run the effect only once
+    }, []);
 
     useEffect(() => {
-        // Only fetch hand when deckId is available
         if (deckId) {
             initHand();
         }
-    }, [deckId]); // This effect will run every time deckId changes
+    }, [deckId]);
 
     const getID = async () => {
         try {
@@ -102,14 +111,11 @@ const PlayerHand: React.FC = () => {
         const newHand = [...playerHand];
         const draggedCard = newHand[dragIndex];
 
-        // Reorder the cards
         newHand.splice(dragIndex, 1);
         newHand.splice(hoverIndex, 0, draggedCard);
 
-        // Update the state with the new order
         setPlayerHand(newHand);
 
-        // Update the database with the new order (if needed)
         await axios.post(`http://localhost:3001/api/player-hand/${playerId}/update`,
             { newHand }
         );
@@ -117,22 +123,21 @@ const PlayerHand: React.FC = () => {
 
     const handleCardClick = (index: number) => {
         if (playerId === currentPlayer) {
-            setActiveCardIndex((prev) => (prev === index ? null : index)); // Toggle the button
+            setActiveCardIndex((prev) => (prev === index ? null : index));
         } else {
-            setActiveCardIndex(null); // Disable the button
+            setActiveCardIndex(null);
         }
     };
 
     const handleDiscard = async (index: number) => {
         if (!cardDrawn) {
-            // You could use a toast library or add a state to show an error message
             alert("You must draw cards before discarding.");
             return;
         }
 
         if (playerId === currentPlayer) {
             await axios.post(`http://localhost:3001/api/player-hand/${playerId}/discard-card/${index}`);
-            setActiveCardIndex(null); // Hide the button after discard
+            setActiveCardIndex(null);
             updateTurn();
         }
     };
@@ -143,12 +148,23 @@ const PlayerHand: React.FC = () => {
         await axios.post(`http://localhost:3001/api/game/update-turn`, 
             { playerIds }
         );
-    }
+    };
+
+    const handleLayDown = async (groups: Record<string, CardType[]>) => {
+        // Implement lay down logic here
+    };
 
     return (
         <DndProvider backend={HTML5Backend}>
             <main>
                 <h1 className="player-name">{name}</h1>
+                {cardsDealt && (
+                    <LayDownGroups
+                        onLayDown={handleLayDown}
+                        onCancel={() => setLayingDown(false)}
+                        playerHand={playerHand}  // Add this prop
+                    />
+                )}
                 <div className="player-hand">
                     {playerHand.map((card: CardType, index: number) => (
                         <Card 
@@ -156,12 +172,20 @@ const PlayerHand: React.FC = () => {
                             card={card} 
                             index={index} 
                             moveCard={moveCard} 
-                            isActive={activeCardIndex === index} // Pass active state
-                            onClick={() => handleCardClick(index)} // Handle click
-                            onDiscard={() => handleDiscard(index)} // Handle discard
+                            isActive={activeCardIndex === index} 
+                            onClick={() => handleCardClick(index)} 
+                            onDiscard={() => handleDiscard(index)} 
                         />
                     ))}
                 </div>
+                {playerId === currentPlayer && (
+                    <button 
+                        onClick={() => setLayingDown(true)}
+                        disabled={!cardDrawn}
+                    >
+                        Lay Down
+                    </button>
+                )}
             </main>
         </DndProvider>
     );

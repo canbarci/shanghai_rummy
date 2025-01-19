@@ -84,8 +84,10 @@ const GamePage = () => {
 
     return (
         <div className="game">
-            {<Deck />}
-            {<DiscardPile />}
+            <div className="center">
+                {<Deck />}
+                {<DiscardPile />}
+            </div>
             <PlayerHand />
             {playerHands && Object.entries(playerHands).map(([playerId, cardCount]) => {
                 // Skip rendering if this is the current user

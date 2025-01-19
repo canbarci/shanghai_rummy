@@ -8,10 +8,12 @@ exports.initGame = async (req, res) => {
         const startedRef = db.ref(`game/started`);
         const cardsDealtRef = db.ref(`game/cardsDealt`);
         const turnRef = db.ref(`game/turn`);
+        const roundRef = db.ref(`game/round`);
     
         await startedRef.set(true);
         await cardsDealtRef.set(false);
         await turnRef.set(0);
+        await roundRef.set("one");
 
         res.status(200).json({ message: "Game started successfully" });
     } catch (error) {

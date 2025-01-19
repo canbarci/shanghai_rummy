@@ -91,7 +91,7 @@ const Deck = () => {
     };
 
     return (
-        <main>
+        <main className="deck">
             <img 
                 className={"card"}
                 src="https://deckofcardsapi.com/static/img/back.png" 

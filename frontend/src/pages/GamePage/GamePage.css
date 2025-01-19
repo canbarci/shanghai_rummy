@@ -1,0 +1,10 @@
+.center {
+    display: flex;
+    flex-direction: row;
+}
+
+.center .card {
+    width: 200px;
+    height: auto;
+    transition: transform 0.2s;
+}
