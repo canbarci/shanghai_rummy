@@ -1,11 +1,12 @@
 .player-hand {
+    width: 80vw;
     display: flex;
+    justify-content: center;
     flex-direction: row; /* Makes the cards align horizontally */
-    padding: 5px;
 }
 
 .player-hand .card {
-    width: 80px;
+    width: 10%;
     height: auto;
     transition: transform 0.2s;
 }

@@ -3,20 +3,21 @@ import React from "react";
 import axios from "axios";
 import { useEffect, useState } from 'react';
 import { getDatabase, ref, onValue} from "firebase/database"
-import { getAuth } from "firebase/auth";
 import Deck from '../../components/Deck/Deck.tsx'
 import PlayerHand from "../../components/PlayerHand/PlayerHand.tsx";
 import OtherPlayerHand from "../../components/OtherPlayerHand/OtherPlayerHand.tsx";
 import DiscardPile from "../../components/DiscardPile/DiscardPile.tsx";
 import './GamePage.css';
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 
 
 const GamePage = () => {
     const currentUser = localStorage.getItem('playerId');
     const db = getDatabase();
     const cardsDealtRef = ref(db, 'game/cardsDealt');
-    const [playerIds, setPlayerIds] = useState<string[]>([]);  // Store number of cards for each player
-    const [playerHands, setPlayersHands] = useState<{ [playerId: string]: number }>();  // Store number of cards for each player
+    const [playerIds, setPlayerIds] = useState<string[]>([]); 
+    const [playerHands, setPlayersHands] = useState<{ [playerId: string]: number }>({});
 
     useEffect(() => {
         const cardsDealtListener = onValue(cardsDealtRef, (snapshot) => {
@@ -29,15 +30,12 @@ const GamePage = () => {
         return () => {
             cardsDealtListener();
         };
-    }, []); // Empty dependency array to run the effect only once
+    }, []);
 
-    // Set up individual listeners for each player's hand
     useEffect(() => {
-        if (playerIds) {
-            // Create an object to store unsubscribe functions
+        if (playerIds.length > 0) {
             const listeners: { [playerId: string]: () => void } = {};
 
-            // Set up a listener for each player's hand
             playerIds.forEach(playerId => {
                 const playerHandRef = ref(db, `game/players/${playerId}/hand`);
                 
@@ -51,12 +49,11 @@ const GamePage = () => {
                     }
                 });
 
-                listener[playerId] = listeners;
+                listeners[playerId] = listener;
             });
 
-            // Cleanup function to remove all listeners
             return () => {
-                Object.values(listeners).forEach(listener => listener());
+                Object.entries(listeners).forEach(([_, unsubscribe]) => unsubscribe());
             };
         }
     }, [playerIds]);
@@ -74,33 +71,69 @@ const GamePage = () => {
 
     const setCurrentPlayer = async (playerIds: string[]) => {
         try {
-            await axios.post(`http://localhost:3001/api/game/turn`, 
-                { playerIds }
-            );
+            await axios.post(`http://localhost:3001/api/game/turn`, { playerIds });
         } catch (error) {
             console.error("Error setting turn order:", error);
         }
     }
 
+    const getPlayerPosition = (index: number, totalPlayers: number): string => {
+        if (totalPlayers === 1) return 'player-position-1'; // Only top
+        if (totalPlayers === 2) {
+            return index === 0 ? 'player-position-1' : 'player-position-2'; // Top and left
+        }
+        const positions = ['player-position-1', 'player-position-2', 'player-position-3'];
+        return positions[index];
+    };
+
+    const otherPlayers = playerIds
+        .filter(playerId => playerId !== currentUser)
+        .map(playerId => ({
+            playerId,
+            cardCount: playerHands[playerId] || 0
+        }));
+
+    const getHandContainerClass = (position: string): string => {
+        if (position === 'player-position-2') return 'hand-container-left';
+        if (position === 'player-position-3') return 'hand-container-right';
+        return '';
+    };
+
     return (
-        <div className="game">
-            <div className="center">
-                {<Deck />}
-                {<DiscardPile />}
-            </div>
-            <PlayerHand />
-            {playerHands && Object.entries(playerHands).map(([playerId, cardCount]) => {
-                // Skip rendering if this is the current user
-                if (playerId === currentUser) return null;
+        <DndProvider backend={HTML5Backend}>
+            <div className="game">
+                <div className="center">
+                    <Deck />
+                    <DiscardPile />
+                </div>
                 
-                return (
-                    <div key={playerId}>
-                        <OtherPlayerHand playerId={playerId} cardsCount={cardCount} />
-                    </div>
-                );
-            })}
-        </div>
+                <div className="other-players">
+                    {otherPlayers.map(({playerId, cardCount}, index) => {
+                        const positionClass = getPlayerPosition(index, otherPlayers.length);
+                        const containerClass = getHandContainerClass(positionClass);
+                        
+                        return (
+                            <div 
+                                key={playerId} 
+                                className={positionClass}
+                            >
+                                <div className={containerClass}>
+                                    <OtherPlayerHand 
+                                        playerId={playerId} 
+                                        cardsCount={cardCount} 
+                                    />
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                <div className="current-player">
+                    <PlayerHand />
+                </div>
+            </div>
+        </DndProvider>
     );
 };
 
-export default GamePage
+export default GamePage;

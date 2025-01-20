@@ -26,14 +26,11 @@ const OtherPlayerHand: React.FC<OtherPlayerHandProps> = ({ playerId, cardsCount 
     return (
         <main>
             <h1 className="other-player-name">{name}</h1>
-            <div className="other-player-hand">
-                {Array.from({ length: cardsCount }).map((_, index) => (
-                    <img
-                        key={index}
-                        src="https://www.deckofcardsapi.com/static/img/back.png"
-                        alt="Card back"
-                    />
-                ))}
+            <div className="other-player-hand" data-cards={cardsCount}>
+                <img
+                    src="https://www.deckofcardsapi.com/static/img/back.png"
+                    alt="Card back"
+                />
             </div>
         </main>
     );

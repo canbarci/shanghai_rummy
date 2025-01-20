@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getDatabase, ref, onValue } from "firebase/database";
-import { DndProvider, useDrag, useDrop } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
+import { useDrop } from "react-dnd";
 import axios from "axios";
 import Card from "../Card/Card.tsx"; // Import Card component
 import './PlayerHand.css';
@@ -30,10 +29,12 @@ const PlayerHand = () => {
     const [name, setName] = useState(null);
     const [cardsDealt, setCardsDealt] = useState(false);
     const [playerHand, setPlayerHand] = useState<CardType[]>([]);
+    const [backupHand, setBackupHand] = useState<CardType[]>([]);
     const [activeCardIndex, setActiveCardIndex] = useState<number | null>(null);
     const [currentPlayer, setCurrentPlayer] = useState(null);
     const [cardDrawn, setCardDrawn] = useState(false);
     const [layingDown, setLayingDown] = useState(false);
+    const [laidDown, setLaidDown] = useState(false);
 
     useEffect(() => {
         const cardsDealtListener = onValue(cardsDealtRef, (snapshot) => {
@@ -83,6 +84,8 @@ const PlayerHand = () => {
         }
     };
 
+    
+
     const getName = async () => {
         try {
             const { data: name } = await axios.get(`http://localhost:3001/api/player-hand/${playerId}/name`);
@@ -121,8 +124,18 @@ const PlayerHand = () => {
         );
     };
 
+    const updateTurn = async () => {
+        const { data: players } = await axios.get(`http://localhost:3001/api/game/players`);
+        const playerIds = Object.keys(players);
+        await axios.post(`http://localhost:3001/api/game/update-turn`, 
+            { playerIds }
+        );
+    };
+
+
+
     const handleCardClick = (index: number) => {
-        if (playerId === currentPlayer) {
+        if (playerId === currentPlayer && !layingDown) {
             setActiveCardIndex((prev) => (prev === index ? null : index));
         } else {
             setActiveCardIndex(null);
@@ -142,52 +155,91 @@ const PlayerHand = () => {
         }
     };
 
-    const updateTurn = async () => {
-        const { data: players } = await axios.get(`http://localhost:3001/api/game/players`);
-        const playerIds = Object.keys(players);
-        await axios.post(`http://localhost:3001/api/game/update-turn`, 
-            { playerIds }
-        );
-    };
+
 
     const handleLayDown = async (groups: Record<string, CardType[]>) => {
-        // Implement lay down logic here
+        setLayingDown(false);
+        setLaidDown(true);
+
+        await axios.post(`http://localhost:3001/api/player-hand/${playerId}/update`, {
+            newHand: [...playerHand]
+        })
     };
 
+    const handleLayingDown = () => {
+        setActiveCardIndex(null);
+        setBackupHand(playerHand);
+        setLayingDown(true);
+    };
+
+    const handleCancel = () => {
+        setPlayerHand(backupHand);
+        setLayingDown(false);
+    }
+
+    const [{ isOver }, drop] = useDrop({
+        accept: 'GROUP_CARD',
+        drop: (item: { card: CardType; groupKey: string; index: number }) => {
+            const { card } = item;
+            setPlayerHand(prev => [...prev, card]);
+
+            axios.post(`http://localhost:3001/api/player-hand/${playerId}/update`, {
+                newHand: [...playerHand, card]
+            });
+        },
+        collect: monitor => ({
+            isOver: !!monitor.isOver()
+        })
+    });
+
+    const handleGroupDrop = (index: number) => {
+        setPlayerHand((prevHand) => prevHand.filter((_, i) => i !== index));
+    };
+
+    const handleHandDrop = (card: CardType) => {
+        setPlayerHand(prev => [...prev, card]);
+    };
+
+
+
     return (
-        <DndProvider backend={HTML5Backend}>
-            <main>
-                <h1 className="player-name">{name}</h1>
-                {cardsDealt && (
-                    <LayDownGroups
-                        onLayDown={handleLayDown}
-                        onCancel={() => setLayingDown(false)}
-                        playerHand={playerHand}  // Add this prop
+        <main>
+            <h1 className="player-name">{name}</h1>
+            {/* FIX THIS */}
+            {playerId === currentPlayer && (layingDown || laidDown) && cardsDealt && (
+                <LayDownGroups
+                    playerHand={playerHand}
+                    onGroupDrop={handleGroupDrop}
+                    onHandDrop={handleHandDrop}
+                    onLayDown={handleLayDown}
+                    onCancel={handleCancel}
+                />
+            )}
+            <div 
+                className={`player-hand ${isOver ? 'drag-over' : ''}`}
+                ref={drop}
+            >
+                {playerHand.map((card: CardType, index: number) => (
+                    <Card 
+                        key={index} 
+                        card={card} 
+                        index={index} 
+                        moveCard={moveCard} 
+                        isActive={activeCardIndex === index} 
+                        onClick={() => handleCardClick(index)} 
+                        onDiscard={() => handleDiscard(index)} 
                     />
-                )}
-                <div className="player-hand">
-                    {playerHand.map((card: CardType, index: number) => (
-                        <Card 
-                            key={index} 
-                            card={card} 
-                            index={index} 
-                            moveCard={moveCard} 
-                            isActive={activeCardIndex === index} 
-                            onClick={() => handleCardClick(index)} 
-                            onDiscard={() => handleDiscard(index)} 
-                        />
-                    ))}
-                </div>
-                {playerId === currentPlayer && (
-                    <button 
-                        onClick={() => setLayingDown(true)}
-                        disabled={!cardDrawn}
-                    >
-                        Lay Down
-                    </button>
-                )}
-            </main>
-        </DndProvider>
+                ))}
+            </div>
+            {playerId === currentPlayer && (!layingDown || !laidDown) && (
+                <button 
+                    onClick={handleLayingDown}
+                    disabled={!cardDrawn}
+                >
+                    Lay Down
+                </button>
+            )}
+        </main>
     );
 };
 

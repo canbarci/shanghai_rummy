@@ -7,8 +7,8 @@
 }
 
 .card-placeholder {
-    width: 200px;
-    height: 273px;
+    width: 150px;
+    height: 223px;
     border: 2px dashed #888;
     border-radius: 10px;
     display: flex;
@@ -21,6 +21,9 @@
 
 /* Override some Card component styles for discard pile */
 .discard-pile .card {
+    width: 150px;
+    height: auto;
+    transition: transform 0.2s;
     cursor: pointer;
 }
 

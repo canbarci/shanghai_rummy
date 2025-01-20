@@ -1,3 +1,9 @@
 .deck {
     padding: 7px;
 }
+
+.deck img {
+    width: 150px;
+    height: auto;
+    transition: transform 0.2s;
+}

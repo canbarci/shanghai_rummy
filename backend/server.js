@@ -35,6 +35,7 @@ const deckRoutes = require('./routes/deckRoutes');
 const discardPileRoutes = require('./routes/discardPileRoutes');
 const playerHandRoutes = require('./routes/playerHandRoutes');
 const gameRoutes = require('./routes/gameRoutes');
+const layDownGroupsRoutes = require('./routes/layDownGroupsRoutes');
 
 // Routes
 app.use('/api/welcome', welcomeRoutes);
@@ -43,6 +44,7 @@ app.use('/api/deck', deckRoutes);
 app.use('/api/discard-pile', discardPileRoutes);
 app.use('/api/player-hand', playerHandRoutes);
 app.use('/api/game', gameRoutes);
+app.use('/api/lay-down-groups', layDownGroupsRoutes);
 
 app.use((err, req, res, next) => {
     console.error("Server error:", err);
