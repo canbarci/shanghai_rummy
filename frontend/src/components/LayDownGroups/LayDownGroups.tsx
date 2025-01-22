@@ -193,47 +193,86 @@ const LayDownGroups: React.FC<LayDownGroupsProps> = ({
         return Object.entries(groups).every(([groupKey, cards]) => {
             if (cards.length === 0) return false;
             
+            // Check for more than one joker
+            const jokerCount = cards.filter(card => card.value === 'JOKER').length;
+            if (jokerCount > 1) {
+                alert(`Invalid ${groupKey}. Only one joker allowed per group.`);
+                return false;
+            }
+    
             const isValid = groupKey.includes('book')
                 ? validateBook(cards)
                 : validateRun(cards);
     
             if (!isValid) {
-                alert(`Invalid ${formatGroupLabel(groupKey)}.`);
+                alert(`Invalid ${groupKey}.`);
                 return false;
             }
     
             return true;
         });
     };
-
+    
     const validateBook = (cards: CardType[]) => {
-        return cards.length >= 3 && 
-               cards.every(card => card.value === cards[0].value);
-    };
-
-    const validateRun = (cards: CardType[]) => {
         if (cards.length < 3) return false;
-
-        // Sort cards by value
-        const sortedCards = cards.sort((a, b) => 
-            cardValueToNumber(a.value) - cardValueToNumber(b.value)
-        );
-
-        // Check if all cards are same suit and consecutive
-        return sortedCards.every((card, index) => 
-            index === 0 || 
-            (card.suit === sortedCards[0].suit && 
-             cardValueToNumber(card.value) === cardValueToNumber(sortedCards[index-1].value) + 1)
-        );
+        
+        // Filter out joker if present
+        const nonJokers = cards.filter(card => card.value !== 'JOKER');
+        
+        // Check if remaining cards have the same value
+        return nonJokers.every(card => card.value === nonJokers[0].value);
     };
-
+    
+    const validateRun = (cards: CardType[]) => {
+        if (cards.length < 4) return false;
+    
+        let prevValue = -1;
+        const jokerIndex = cards.findIndex(card => card.value === 'JOKER');
+        let suit = '';
+    
+        for (let i = 0; i < cards.length; i++) {
+            const card = cards[i];
+    
+            // Skip joker - we'll validate its position by checking the gap
+            if (card.value === 'JOKER') continue;
+    
+            // Set initial suit
+            if (suit === '') {
+                suit = card.suit;
+            } else if (card.suit !== suit) {
+                return false;
+            }
+    
+            const currentValue = cardValueToNumber(card.value);
+            
+            // Set initial value
+            if (prevValue === -1) {
+                prevValue = currentValue;
+                continue;
+            }
+    
+            // Check if there's a gap that needs a joker
+            const gap = currentValue - prevValue;
+    
+            if (gap === 1) {
+                prevValue = currentValue;
+            } else if (gap === 2 && jokerIndex > -1 && jokerIndex === i - 1) {
+                prevValue = currentValue;
+            } else {
+                return false;
+            }
+        }
+    
+        return true;
+    };
+    
     const cardValueToNumber = (value: string): number => {
         const valueMap: {[key: string]: number} = {
             'A': 1, '2': 2, '3': 3, '4': 4, '5': 5, 
             '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 
             'J': 11, 'Q': 12, 'K': 13
         };
-        return valueMap[value] || 0;
+        return valueMap[value] || (value === 'A' ? 14 : 0);
     };
 
 

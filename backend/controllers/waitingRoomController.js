@@ -13,7 +13,7 @@ exports.initGame = async (req, res) => {
         await startedRef.set(true);
         await cardsDealtRef.set(false);
         await turnRef.set(0);
-        await roundRef.set("one");
+        await roundRef.set("two");
 
         res.status(200).json({ message: "Game started successfully" });
     } catch (error) {
