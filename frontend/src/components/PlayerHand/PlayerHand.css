@@ -2,10 +2,15 @@
     width: 80vw;
     display: flex;
     justify-content: center;
-    flex-direction: row; /* Makes the cards align horizontally */
+    flex-direction: row;
+}
+
+.player-name {
+    width: auto;
 }
 
 .player-hand .card {
+    max-width: 100px;
     width: 10%;
     height: auto;
     transition: transform 0.2s;

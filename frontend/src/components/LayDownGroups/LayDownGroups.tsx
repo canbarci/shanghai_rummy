@@ -17,67 +17,71 @@ interface LayDownGroupsProps {
     onHandDrop: (card: CardType) => void;
     onLayDown: (groups: Record<string, CardType[]>) => void;
     onCancel: () => void;
+    isVisible: boolean;
 }
-
-const GroupCard = ({ card, groupKey, index, onRemoveCard }: { 
-    card: CardType; 
-    groupKey: string; 
-    index: number;
-    onRemoveCard: (groupKey: string, index: number) => void;
-}) => {
-    const [{ isDragging }, drag] = useDrag({
-        type: 'GROUP_CARD',
-        item: { card, groupKey, index },
-        end: () => {
-            onRemoveCard(groupKey, index);
-        },
-        collect: (monitor) => ({
-            isDragging: !!monitor.isDragging(),
-        }),
-    });
-
-    return (
-        <img
-            ref={drag}
-            src={card.image}
-            alt={`${card.value} of ${card.suit}`}
-            className={`card ${isDragging ? 'dragging' : ''}`}
-            style={{ opacity: isDragging ? 0.5 : 1 }}
-        />
-    );
-};
 
 const LayDownGroups: React.FC<LayDownGroupsProps> = ({
     playerHand,
     onGroupDrop,
     onHandDrop,
     onLayDown,
-    onCancel
+    onCancel,
+    isVisible
 }) => {
     const playerId = localStorage.getItem('playerId');
     const db = getDatabase();
     const roundRef = ref(db, `game/round`);
+    const groupsRef = ref(db, `game/players/${playerId}/groups`);
+    const laidDownRef = ref(db, `game/players/${playerId}/laidDown`);
     const [currentRound, setCurrentRound] = useState('one');
-    const [groups, setGroups] = useState<Record<string, CardType[]>>(() => {
-        const roundConfig = RoundConfigs[currentRound];
+    const [laidDown, setLaidDown] = useState(false);
+
+    // Initialize groups based on round config
+    const initializeGroups = (round: string) => {
+        const roundConfig = RoundConfigs[round];
         return roundConfig.reduce((acc, config) => {
             for (let i = 0; i < config.maxGroups; i++) {
                 acc[`${config.type}${i + 1}`] = [];
             }
             return acc;
         }, {} as Record<string, CardType[]>);
-    });
-    const [laidDown, setLaidDown] = useState(false);
+    };
+
+    // Initialize groups state with the function
+    const [groups, setGroups] = useState<Record<string, CardType[]>>(() => 
+        initializeGroups(currentRound)
+    );
 
     useEffect(() => {
         const roundListener = onValue(roundRef, (snapshot) => {
-            setCurrentRound(snapshot.val());
+            const round = snapshot.val() || 'one';
+            setCurrentRound(round);
+            // Reset groups when round changes if not already set
+            if (!snapshot.val()) {
+                setGroups(initializeGroups(round));
+            }
+        });
+
+        const groupsListener = onValue(groupsRef, (snapshot) => {
+            const groupsData = snapshot.val();
+            if (groupsData) {
+                setGroups(groupsData);
+            } else {
+                // If no groups data exists, initialize with empty groups
+                setGroups(initializeGroups(currentRound));
+            }
+        });
+
+        const laidDownListener = onValue(laidDownRef, (snapshot) => {
+            setLaidDown(snapshot.val() || false);
         });
 
         return () => {
             roundListener();
+            groupsListener();
+            laidDownListener();
         };
-    }, []);
+    }, [currentRound]);
     
     const formatGroupLabel = (groupKey: string) => {
         const type = groupKey.replace(/\d+$/, ''); 
@@ -87,6 +91,38 @@ const LayDownGroups: React.FC<LayDownGroupsProps> = ({
     };
 
 
+
+    const GroupCard = ({ card, groupKey, index, onRemoveCard, laidDown }: { 
+        card: CardType; 
+        groupKey: string; 
+        index: number;
+        onRemoveCard: (groupKey: string, index: number) => void;
+        laidDown: boolean;
+    }) => {
+        const [{ isDragging }, drag] = useDrag({
+            type: 'GROUP_CARD',
+            item: { card, groupKey, index },
+            canDrag: () => !laidDown,
+            end: (item, monitor) => {
+                if (!laidDown && monitor.didDrop()) { 
+                    onRemoveCard(groupKey, index);
+                }
+            },
+            collect: (monitor) => ({
+                isDragging: !!monitor.isDragging(),
+            }),
+        });
+    
+        return (
+            <img
+                ref={drag}
+                src={card.image}
+                alt={`${card.value} of ${card.suit}`}
+                className={`card ${isDragging ? 'dragging' : ''}`}
+                style={{ opacity: isDragging ? 0.5 : 1 }}
+            />
+        );
+    };
 
     const GroupPlaceholder = ({ groupKey }: { groupKey: string }) => {
         const [{ isOver }, drop] = useDrop({
@@ -121,6 +157,7 @@ const LayDownGroups: React.FC<LayDownGroupsProps> = ({
                             groupKey={groupKey}
                             index={cardIndex}
                             onRemoveCard={removeCardFromGroup}
+                            laidDown={laidDown} 
                         />
                     ))
                 )}
@@ -129,13 +166,15 @@ const LayDownGroups: React.FC<LayDownGroupsProps> = ({
     };
 
     const removeCardFromGroup = (groupKey: string, cardIndex: number) => {
-        setGroups(prevGroups => {
-            const newGroups = { ...prevGroups };
-            const card = newGroups[groupKey][cardIndex];
-            newGroups[groupKey] = newGroups[groupKey].filter((_, i) => i !== cardIndex);
-            onHandDrop(card);
-            return newGroups;
-        });
+        if (!laidDown) {
+            setGroups(prevGroups => {
+                const newGroups = { ...prevGroups };
+                const card = newGroups[groupKey][cardIndex];
+                newGroups[groupKey] = newGroups[groupKey].filter((_, i) => i !== cardIndex);
+                onHandDrop(card);
+                return newGroups;
+            });
+        }
     };
 
 
@@ -198,6 +237,10 @@ const LayDownGroups: React.FC<LayDownGroupsProps> = ({
     };
 
 
+
+    if (!isVisible) {
+        return null;
+    }
 
     return (
         <div className="groups">

@@ -25,6 +25,7 @@ const PlayerHand = () => {
     const playerHandRef = ref(db, `game/players/${playerId}/hand`);
     const currentPlayerRef = ref(db, `game/currentPlayer`);
     const cardDrawnRef = ref(db, `game/players/${playerId}/cardDrawn`);
+    const laidDownRef = ref(db, `game/players/${playerId}/laidDown`);
     const [deckId, setDeckId] = useState(null);
     const [name, setName] = useState(null);
     const [cardsDealt, setCardsDealt] = useState(false);
@@ -35,6 +36,7 @@ const PlayerHand = () => {
     const [cardDrawn, setCardDrawn] = useState(false);
     const [layingDown, setLayingDown] = useState(false);
     const [laidDown, setLaidDown] = useState(false);
+    const [showLayDownGroups, setShowLayDownGroups] = useState(false);
 
     useEffect(() => {
         const cardsDealtListener = onValue(cardsDealtRef, (snapshot) => {
@@ -61,11 +63,17 @@ const PlayerHand = () => {
             setCardDrawn(snapshot.val())
         });
 
+        const laidDownRefListener = onValue(laidDownRef, (snapshot) => {
+            console.log(snapshot.val())
+            setLaidDown(snapshot.val())
+        });
+
         return () => {
             cardsDealtListener();
             playerHandListener();
             currentPlayerListener();
             cardDrawnListener();
+            laidDownRefListener();
         };
     }, []);
 
@@ -74,6 +82,13 @@ const PlayerHand = () => {
             initHand();
         }
     }, [deckId]);
+
+    useEffect(() => {
+        setShowLayDownGroups(
+            (playerId === currentPlayer && layingDown) || // Show to current player while laying down
+            laidDown // Show to everyone after confirmed
+        );
+    }, [playerId, currentPlayer, layingDown, laidDown]);
 
     const getID = async () => {
         try {
@@ -159,7 +174,6 @@ const PlayerHand = () => {
 
     const handleLayDown = async (groups: Record<string, CardType[]>) => {
         setLayingDown(false);
-        setLaidDown(true);
 
         await axios.post(`http://localhost:3001/api/player-hand/${playerId}/update`, {
             newHand: [...playerHand]
@@ -179,13 +193,17 @@ const PlayerHand = () => {
 
     const [{ isOver }, drop] = useDrop({
         accept: 'GROUP_CARD',
+        canDrop: () => !laidDown,
         drop: (item: { card: CardType; groupKey: string; index: number }) => {
-            const { card } = item;
-            setPlayerHand(prev => [...prev, card]);
-
-            axios.post(`http://localhost:3001/api/player-hand/${playerId}/update`, {
-                newHand: [...playerHand, card]
-            });
+            if (!laidDown) {
+                console.log(laidDown)
+                const { card } = item;
+                setPlayerHand(prev => [...prev, card]);
+    
+                axios.post(`http://localhost:3001/api/player-hand/${playerId}/update`, {
+                    newHand: [...playerHand, card]
+                });
+            }
         },
         collect: monitor => ({
             isOver: !!monitor.isOver()
@@ -205,14 +223,14 @@ const PlayerHand = () => {
     return (
         <main>
             <h1 className="player-name">{name}</h1>
-            {/* FIX THIS */}
-            {playerId === currentPlayer && (layingDown || laidDown) && cardsDealt && (
+            {showLayDownGroups && cardsDealt && (
                 <LayDownGroups
                     playerHand={playerHand}
                     onGroupDrop={handleGroupDrop}
                     onHandDrop={handleHandDrop}
                     onLayDown={handleLayDown}
                     onCancel={handleCancel}
+                    isVisible={showLayDownGroups}
                 />
             )}
             <div 
@@ -231,10 +249,10 @@ const PlayerHand = () => {
                     />
                 ))}
             </div>
-            {playerId === currentPlayer && (!layingDown || !laidDown) && (
+            {cardsDealt && !layingDown && !laidDown && (
                 <button 
                     onClick={handleLayingDown}
-                    disabled={!cardDrawn}
+                    disabled={!cardDrawn || playerId !== currentPlayer}
                 >
                     Lay Down
                 </button>

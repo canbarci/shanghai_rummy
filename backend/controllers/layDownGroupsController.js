@@ -9,9 +9,10 @@ exports.initialize = async (req, res) => {
 
     try { 
         const groupsRef = db.ref(`game/players/${playerId}/groups`);
-        console.log(groups)
+        const laidDownRef = db.ref(`game/players/${playerId}/laidDown`);
 
         await groupsRef.set(groups);
+        await laidDownRef.set(true);
 
         res.status(200).json({ message: 'Groups updated successfully' });
     } catch (error) {
