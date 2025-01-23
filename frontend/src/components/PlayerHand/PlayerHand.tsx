@@ -210,12 +210,26 @@ const PlayerHand = () => {
         })
     });
 
-    const handleGroupDrop = (index: number) => {
-        setPlayerHand((prevHand) => prevHand.filter((_, i) => i !== index));
+    const handleGroupDrop = async (index: number) => {
+        const updatedHand = playerHand.filter((_, i) => i !== index);
+        setPlayerHand(updatedHand);
+    
+        if (laidDown) {
+            await axios.post(`http://localhost:3001/api/player-hand/${playerId}/update`, {
+                newHand: updatedHand
+            });
+        }
     };
-
-    const handleHandDrop = (card: CardType) => {
-        setPlayerHand(prev => [...prev, card]);
+    
+    const handleHandDrop = async (card: CardType) => {
+        const updatedHand = [...playerHand, card];
+        setPlayerHand(updatedHand);
+    
+        if (laidDown) {
+            await axios.post(`http://localhost:3001/api/player-hand/${playerId}/update`, {
+                newHand: updatedHand
+            });
+        }
     };
 
 

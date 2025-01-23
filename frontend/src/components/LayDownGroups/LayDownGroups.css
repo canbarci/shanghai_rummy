@@ -29,6 +29,7 @@
     gap: 5px;
     padding: 10px;
     transition: background-color 0.2s;
+    flex-wrap: wrap; 
 }
 
 .group-placeholder.drag-over {
@@ -50,7 +51,8 @@
 }
 
 .group-placeholder .card {
-    width: 5vw;
+    max-width: 100px;
+    width: 10vw;
     height: auto;
     transition: transform 0.2s;
 }

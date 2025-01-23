@@ -127,24 +127,75 @@ const LayDownGroups: React.FC<LayDownGroupsProps> = ({
     const GroupPlaceholder = ({ groupKey }: { groupKey: string }) => {
         const [{ isOver }, drop] = useDrop({
             accept: 'CARD',
-            canDrop: () => !laidDown,
-            drop: (item: { index: number }) => {
+            drop: async (item: { index: number }) => {
                 const droppedCard = playerHand[item.index];
-                setGroups(prevGroups => ({
-                    ...prevGroups,
-                    [groupKey]: [...prevGroups[groupKey], droppedCard]
-                }));
-                onGroupDrop(item.index);
+                
+                if (laidDown) {
+                    const currentGroup = groups[groupKey];
+                    const updatedGroups = { ...groups };
+            
+                    // If dropping a joker, always add it to the end
+                    if (droppedCard.value === 'JOKER') {
+                        updatedGroups[groupKey] = [...currentGroup, droppedCard];
+                        setGroups(updatedGroups);
+                        
+                        await axios.post(`http://localhost:3001/api/lay-down-groups/${playerId}/update`, {
+                            groups: updatedGroups
+                        });
+                        
+                        onGroupDrop(item.index);
+                        return { groupKey };
+                    }
+            
+                    const jokerIndex = findJokerPosition(currentGroup);
+            
+                    // Joker replacement logic
+                    if (jokerIndex !== -1 && validateDrop(droppedCard, groupKey, currentGroup)) {
+                        const joker = currentGroup[jokerIndex];
+                        updatedGroups[groupKey] = [
+                            ...currentGroup.filter((_, i) => i !== jokerIndex), 
+                            droppedCard
+                        ];
+                        
+                        setGroups(updatedGroups);
+            
+                        await axios.post(`http://localhost:3001/api/lay-down-groups/${playerId}/update`, {
+                            groups: updatedGroups
+                        });
+            
+                        onGroupDrop(item.index);
+                        onHandDrop(joker);
+                    }
+                    // Regular drop validation
+                    else if (validateDrop(droppedCard, groupKey, currentGroup)) {
+                        updatedGroups[groupKey] = [...currentGroup, droppedCard];
+                        
+                        setGroups(updatedGroups);
+            
+                        await axios.post(`http://localhost:3001/api/lay-down-groups/${playerId}/update`, {
+                            groups: updatedGroups
+                        });
+            
+                        onGroupDrop(item.index);
+                    }
+                } else {
+                    // Before laying down, accept all drops without validation
+                    setGroups(prevGroups => ({
+                        ...prevGroups,
+                        [groupKey]: [...prevGroups[groupKey], droppedCard]
+                    }));
+                    onGroupDrop(item.index);
+                }
                 return { groupKey };
             },
             collect: monitor => ({
                 isOver: !!monitor.isOver(),
             }),
         });
-    
+
         return (
             <div 
-                ref={!laidDown ? drop : null}
+                ref={drop}
                 className={`group-placeholder ${isOver ? 'drag-over' : ''}`}
             >
                 {groups[groupKey].length === 0 ? (
@@ -165,12 +216,21 @@ const LayDownGroups: React.FC<LayDownGroupsProps> = ({
         );
     };
 
+    const findJokerPosition = (group: CardType[]): number => {
+        return group.findIndex(card => card.value === 'JOKER');
+    };
+
     const removeCardFromGroup = (groupKey: string, cardIndex: number) => {
-        if (!laidDown) {
+        if (laidDown) {
             setGroups(prevGroups => {
                 const newGroups = { ...prevGroups };
                 const card = newGroups[groupKey][cardIndex];
                 newGroups[groupKey] = newGroups[groupKey].filter((_, i) => i !== cardIndex);
+                
+                axios.post(`http://localhost:3001/api/lay-down-groups/${playerId}/update`, {
+                    groups: newGroups
+                });
+    
                 onHandDrop(card);
                 return newGroups;
             });
@@ -193,71 +253,50 @@ const LayDownGroups: React.FC<LayDownGroupsProps> = ({
         return Object.entries(groups).every(([groupKey, cards]) => {
             if (cards.length === 0) return false;
             
-            // Check for more than one joker
             const jokerCount = cards.filter(card => card.value === 'JOKER').length;
             if (jokerCount > 1) {
                 alert(`Invalid ${groupKey}. Only one joker allowed per group.`);
                 return false;
             }
     
-            const isValid = groupKey.includes('book')
-                ? validateBook(cards)
-                : validateRun(cards);
-    
-            if (!isValid) {
-                alert(`Invalid ${groupKey}.`);
-                return false;
-            }
-    
-            return true;
+            return validateGroup(cards, groupKey);
         });
     };
+
+    const validateGroup = (cards: CardType[], groupKey: string): boolean => {
+        // Check minimum group size
+        if (cards.length < (groupKey.includes('book') ? 3 : 4)) return false;
     
-    const validateBook = (cards: CardType[]) => {
-        if (cards.length < 3) return false;
-        
-        // Filter out joker if present
-        const nonJokers = cards.filter(card => card.value !== 'JOKER');
-        
-        // Check if remaining cards have the same value
-        return nonJokers.every(card => card.value === nonJokers[0].value);
-    };
-    
-    const validateRun = (cards: CardType[]) => {
-        if (cards.length < 4) return false;
-    
-        let prevValue = -1;
+        // Filter out jokers
+        const nonJokerCards = cards.filter(card => card.value !== 'JOKER');
         const jokerIndex = cards.findIndex(card => card.value === 'JOKER');
-        let suit = '';
     
-        for (let i = 0; i < cards.length; i++) {
-            const card = cards[i];
+        // Book validation
+        if (groupKey.includes('book')) {
+            return nonJokerCards.every(card => card.value === nonJokerCards[0].value);
+        }
     
-            // Skip joker - we'll validate its position by checking the gap
-            if (card.value === 'JOKER') continue;
+        // Run validation
+        // Check suit consistency
+        const suit = nonJokerCards[0].suit;
+        if (!nonJokerCards.every(card => card.suit === suit)) return false;
     
-            // Set initial suit
-            if (suit === '') {
-                suit = card.suit;
-            } else if (card.suit !== suit) {
-                return false;
-            }
+        // Convert card values, handling Ace specially
+        const cardValues = nonJokerCards.map(card => {
+            const numValue = cardValueToNumber(card.value);
+            return numValue === 1 ? 14 : numValue;
+        });
     
-            const currentValue = cardValueToNumber(card.value);
+        // Allow one gap if joker is present
+        let gapsAllowed = jokerIndex !== -1 ? 1 : 0;
+    
+        for (let i = 1; i < cardValues.length; i++) {
+            const gap = Math.abs(cardValues[i] - cardValues[i-1]);
             
-            // Set initial value
-            if (prevValue === -1) {
-                prevValue = currentValue;
-                continue;
-            }
-    
-            // Check if there's a gap that needs a joker
-            const gap = currentValue - prevValue;
-    
-            if (gap === 1) {
-                prevValue = currentValue;
-            } else if (gap === 2 && jokerIndex > -1 && jokerIndex === i - 1) {
-                prevValue = currentValue;
+            if (gap === 1) continue;
+            
+            if (gap === 2 && gapsAllowed > 0) {
+                gapsAllowed--;
             } else {
                 return false;
             }
@@ -266,13 +305,62 @@ const LayDownGroups: React.FC<LayDownGroupsProps> = ({
         return true;
     };
     
+    const validateDrop = (droppedCard: CardType, groupKey: string, currentGroup: CardType[]): boolean => {
+        const isBook = groupKey.includes('book');
+        const nonJokers = currentGroup.filter(card => card.value !== 'JOKER');
+    
+        // Book drop validation
+        if (isBook) {
+            if (nonJokers.length > 0 && droppedCard.value !== nonJokers[0].value) {
+                alert('Cards in a book must have the same value');
+                return false;
+            }
+            return true;
+        }
+    
+        // Run drop validation
+        if (nonJokers.length > 0 && droppedCard.suit !== nonJokers[0].suit) {
+            alert('Cards in a run must be of the same suit');
+            return false;
+        }
+    
+        const values = nonJokers.map(card => cardValueToNumber(card.value));
+        const newValue = cardValueToNumber(droppedCard.value);
+        
+        // Special Ace handling
+        if (droppedCard.value === 'A') {
+            const canAddAceAsOne = values[0] === 2;
+            const canAddAceFourteen = values[values.length - 1] === 13;
+            return canAddAceAsOne || canAddAceFourteen;
+        }
+    
+        // Check sequential or gap with joker
+        if (Math.abs(newValue - values[0]) === 1 || 
+            Math.abs(newValue - values[values.length - 1]) === 1) {
+            return true;
+        }
+    
+        if (currentGroup.some(card => card.value === 'JOKER')) {
+            for (let i = 0; i < values.length - 1; i++) {
+                if (Math.abs(values[i] - values[i + 1]) === 2 && 
+                    newValue > values[i] && 
+                    newValue < values[i + 1]) {
+                    return true;
+                }
+            }
+        }
+    
+        alert('Card must be sequential with existing cards');
+        return false;
+    };
+    
     const cardValueToNumber = (value: string): number => {
         const valueMap: {[key: string]: number} = {
-            'A': 1, '2': 2, '3': 3, '4': 4, '5': 5, 
+            'ACE': 1, '2': 2, '3': 3, '4': 4, '5': 5, 
             '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 
-            'J': 11, 'Q': 12, 'K': 13
+            'JACK': 11, 'QUEEN': 12, 'KING': 13
         };
-        return valueMap[value] || (value === 'A' ? 14 : 0);
+        return valueMap[value] || (value === 'ACE' ? 14 : 0);
     };
 
 
