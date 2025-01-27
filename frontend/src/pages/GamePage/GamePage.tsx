@@ -13,7 +13,7 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 
 
 const GamePage = () => {
-    const currentUser = localStorage.getItem('playerId');
+    const currentUser = localStorage.getItem('playerId') ?? '';
     const db = getDatabase();
     const cardsDealtRef = ref(db, 'game/cardsDealt');
     const [playerIds, setPlayerIds] = useState<string[]>([]); 
@@ -99,6 +99,28 @@ const GamePage = () => {
         return '';
     };
 
+    // const handleGroupDrop = (groupKey: string, index: number, targetPlayerId: string) => {
+    //     const updatedHand = playerHand.filter((_, i) => i !== index);
+    //     setPlayerHand(updatedHand);
+    
+    //     if (laidDown) {
+    //         await axios.post(`http://localhost:3001/api/player-hand/${playerId}/update`, {
+    //             newHand: updatedHand
+    //         });
+    //     }
+    // };
+    
+    // const handleHandDrop = async (card: CardType) => {
+    //     const updatedHand = [...playerHand, card];
+    //     setPlayerHand(updatedHand);
+    
+    //     if (laidDown) {
+    //         await axios.post(`http://localhost:3001/api/player-hand/${playerId}/update`, {
+    //             newHand: updatedHand
+    //         });
+    //     }
+    // };
+
     return (
         <DndProvider backend={HTML5Backend}>
             <div className="game">
@@ -120,7 +142,8 @@ const GamePage = () => {
                                 <div className={containerClass}>
                                     <OtherPlayerHand 
                                         playerId={playerId} 
-                                        cardsCount={cardCount} 
+                                        cardsCount={cardCount}
+                                        currentPlayerId={currentUser}
                                     />
                                 </div>
                             </div>

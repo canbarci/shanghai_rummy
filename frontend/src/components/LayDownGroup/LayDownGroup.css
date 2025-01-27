@@ -1,0 +1,40 @@
+.group-placeholder {
+    min-width: 20vw;
+    min-height: 16vh;
+    border: 2px dashed #ccc;
+    border-radius: 4px;
+    display: flex;
+    gap: 5px;
+    padding: 10px;
+    transition: background-color 0.2s;
+    flex-wrap: wrap; 
+}
+
+.group-placeholder.drag-over {
+    background-color: rgba(0, 0, 0, 0.1);
+    border-color: #666;
+}
+
+.placeholder-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+}
+
+.group-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.group-placeholder .card {
+    max-width: 100px;
+    width: 10vw;
+    height: auto;
+    transition: transform 0.2s;
+}
+
+.group-placeholder .card:hover {
+    transform: translateY(-5px);
+}

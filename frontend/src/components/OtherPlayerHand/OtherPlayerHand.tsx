@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { getDatabase, ref, onValue } from "firebase/database";
 import axios from "axios";
+import LayDownGroup from '../LayDownGroup/LayDownGroup.tsx';
 import './OtherPlayerHand.css';
 
 interface CardType {
@@ -12,13 +13,22 @@ interface CardType {
 interface OtherPlayerHandProps {
     playerId: string;
     cardsCount: number;
+    currentPlayerId: string;
+    // onGroupDrop: (groupKey: string, index: number, targetPlayerId: string) => void; // Add this prop
 }
 
-const OtherPlayerHand: React.FC<OtherPlayerHandProps> = ({ playerId, cardsCount }) => {
+const OtherPlayerHand: React.FC<OtherPlayerHandProps> = ({ 
+    playerId, 
+    cardsCount,
+    currentPlayerId,
+    // onGroupDrop
+}) => {
     const db = getDatabase();
     const laidDownRef = ref(db, `game/players/${playerId}/laidDown`);
+    const currentPlayerHandRef = ref(db, `game/players/${currentPlayerId}/hand`);
     const groupsRef = ref(db, `game/players/${playerId}/groups`);
     const [name, setName] = useState<string | null>(null);
+    const [currentPlayerHand, setCurrentPlayerHand] = useState<CardType[]>([]);
     const [laidDown, setLaidDown] = useState(false);
     const [groups, setGroups] = useState<Record<string, CardType[]>>({});
     
@@ -31,6 +41,13 @@ const OtherPlayerHand: React.FC<OtherPlayerHandProps> = ({ playerId, cardsCount 
                 console.error("Error fetching player name:", error);
             }
         };
+
+        const currentPlayerHandListener = onValue(currentPlayerHandRef, (snapshot) => {
+            const handData = snapshot.val();
+            if (handData) {
+                setCurrentPlayerHand(handData);
+            }
+        });
 
         const laidDownListener = onValue(laidDownRef, (snapshot) => {
             setLaidDown(snapshot.val() || false);
@@ -48,6 +65,7 @@ const OtherPlayerHand: React.FC<OtherPlayerHandProps> = ({ playerId, cardsCount 
         return () => {
             laidDownListener();
             groupsListener();
+            currentPlayerHandListener();
         };
     }, [playerId, db]);
 
@@ -75,16 +93,35 @@ const OtherPlayerHand: React.FC<OtherPlayerHandProps> = ({ playerId, cardsCount 
                     {Object.entries(groups).map(([groupKey, cards]) => (
                         <div className="group" key={groupKey}>
                             <span className="group-label">{formatGroupLabel(groupKey)}</span>
-                            <div className="group-placeholder">
-                                {cards.map((card, cardIndex) => (
-                                    <img
-                                        key={cardIndex}
-                                        src={card.image}
-                                        alt={`${card.value} of ${card.suit}`}
-                                        className="card"
-                                    />
-                                ))}
-                            </div>
+                            <LayDownGroup
+                                groupKey={groupKey}
+                                groups={groups}
+                                playerHand={currentPlayerHand}
+                                playerId={playerId}
+                                laidDown={true} // Always true for other players
+                                setGroups={async (updatedGroups) => {
+                                    await axios.post(`http://localhost:3001/api/lay-down-groups/${playerId}/update`, {
+                                        groups: updatedGroups
+                                    });
+                                }} // No-op for other players
+                                onCardRemove={() => { } } 
+                                onGroupDrop={async (cardIndex) => { 
+                                    const updatedHand = [...currentPlayerHand];
+                                    updatedHand.splice(cardIndex, 1);
+
+                                    await axios.post(`http://localhost:3001/api/player-hand/${currentPlayerId}/update`, {
+                                        newHand: updatedHand
+                                    });
+                                }}
+                                // FIX PHANTOM JOKER
+                                onHandDrop={async (card) => { 
+                                    const updatedHand = [...currentPlayerHand, card];
+
+                                    await axios.post(`http://localhost:3001/api/player-hand/${currentPlayerId}/update`, {
+                                        newHand: updatedHand
+                                    });
+                                }}
+                            />
                         </div>
                     ))}
                 </div>

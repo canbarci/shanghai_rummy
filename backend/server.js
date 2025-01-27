@@ -57,6 +57,7 @@ const server = app.listen(PORT, () => {
 });
 
 process.on('SIGINT', () => {
+    server.removeAllListeners('connection');
     server.close(() => {
         console.log('Server closed');
         process.exit(0);

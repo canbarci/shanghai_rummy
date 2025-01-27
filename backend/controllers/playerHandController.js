@@ -48,6 +48,26 @@ exports.initPlayerHand = async (req, res) => {
     }
 }
 
+exports.getPlayerHand = async (req, res) => {
+    const { newHand } = req.body;
+    const { playerId } = req.params; // Get playerId from URL parameter
+
+    try {
+        const handRef = db.ref(`game/players/${playerId}/hand`);
+        const snapshot = await handRef.get();
+        const playerHand = snapshot.val();
+
+        if (!playerHand) {
+            return res.status(404).json({ error: 'Player not found' });
+        }
+
+        res.status(200).json(playerHand);
+    } catch (error) {
+        console.error("Error getting player hand:", error);
+        res.status(500).json({ error: "Failed to get player hand" });
+    }
+}
+
 exports.updatePlayerHand = async (req, res) => {
     const { newHand } = req.body;
     const { playerId } = req.params; // Get playerId from URL parameter
