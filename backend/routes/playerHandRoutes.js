@@ -5,8 +5,10 @@ const playerHandController = require('../controllers/playerHandController');
 router.get('/:playerId/name', playerHandController.getPlayerName);
 router.post('/:playerId/hand', playerHandController.initPlayerHand);
 router.get('/:playerId/get', playerHandController.getPlayerHand);
+router.get('/:playerId/laid-down', playerHandController.getLaidDownStatus);
 router.post('/:playerId/update', playerHandController.updatePlayerHand);
 router.post('/:playerId/add-card', playerHandController.addCard);
 router.post('/:playerId/discard-card/:index', playerHandController.discardCard);
+router.get('/:playerId/card-drawn', playerHandController.getCardDrawnStatus);
 
 module.exports = router;

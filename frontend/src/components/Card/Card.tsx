@@ -17,9 +17,14 @@ interface CardProps {
 }
 
 const Card: React.FC<CardProps> = ({ card, index, moveCard, onClick, onDiscard, isActive, isDiscardPile }) => {
+    const playerId = localStorage.getItem('playerId') ?? '';
+
     const [{ isDragging }, drag] = useDrag({
         type: "CARD",
-        item: { index },
+        item: { 
+            index,
+            sourcePlayerId: playerId
+        },
         canDrag: !isDiscardPile,
         collect: (monitor) => ({
             isDragging: !!monitor.isDragging(),

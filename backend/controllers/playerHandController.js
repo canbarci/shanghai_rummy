@@ -28,6 +28,8 @@ exports.initPlayerHand = async (req, res) => {
 
     try {
         const handRef = db.ref(`game/players/${playerId}/hand`);
+        const laidDownRef = db.ref(`game/players/${playerId}/laidDown`);
+        const cardDrawnRef = db.ref(`game/players/${playerId}/cardDrawn`);
         const remainingRef = db.ref(`game/deck/remaining`);
 
         const { data: handData } = await axios.get(`https://deckofcardsapi.com/api/deck/${deckId}/draw/?count=11`);
@@ -36,6 +38,8 @@ exports.initPlayerHand = async (req, res) => {
         const remainingCards = handData.remaining;
 
         await handRef.set(hand);
+        await laidDownRef.set(false);
+        await cardDrawnRef.set(false);
         await remainingRef.set(remainingCards);
 
         res.status(200).json({ 
@@ -49,7 +53,6 @@ exports.initPlayerHand = async (req, res) => {
 }
 
 exports.getPlayerHand = async (req, res) => {
-    const { newHand } = req.body;
     const { playerId } = req.params; // Get playerId from URL parameter
 
     try {
@@ -65,6 +68,25 @@ exports.getPlayerHand = async (req, res) => {
     } catch (error) {
         console.error("Error getting player hand:", error);
         res.status(500).json({ error: "Failed to get player hand" });
+    }
+}
+
+exports.getLaidDownStatus = async (req, res) => {
+    const { playerId } = req.params; // Get playerId from URL parameter
+
+    try {
+        const laidDownRef = db.ref(`game/players/${playerId}/laidDown`);
+        const snapshot = await laidDownRef.get();
+        const laidDown = snapshot.val();
+
+        if (!laidDown) {
+            return res.status(404).json({ error: 'Status not found' });
+        }
+
+        res.status(200).json(laidDown);
+    } catch (error) {
+        console.error("Error getting status:", error);
+        res.status(500).json({ error: "Failed to get status" });
     }
 }
 
@@ -137,6 +159,26 @@ exports.discardCard = async (req, res) => {
         res.status(500).json({ error: "Failed to add card" });
     }
 }
+
+exports.getCardDrawnStatus = async (req, res) => {
+    const { playerId } = req.params;
+
+    try {
+        const cardDrawnRef = db.ref(`game/players/${playerId}/cardDrawn`);
+        const snapshot = await cardDrawnRef.get();
+        const cardDrawn = snapshot.val();
+
+        if (!cardDrawn) {
+            return res.status(404).json({ error: 'Status not found' });
+        }
+
+        res.status(200).json(cardDrawn);
+    } catch (error) {
+        console.error("Error getting status:", error);
+        res.status(500).json({ error: "Failed to get status" });
+    }
+}
+
 
 
 
